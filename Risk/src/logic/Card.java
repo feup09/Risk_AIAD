@@ -3,7 +3,7 @@ package logic;
 public class Card {
 	FIGURE figure;
 	TERRITORY territory;
-	public enum FIGURE {HORSE,SOLDIER,CANNON};
+	public enum FIGURE {HORSE,SOLDIER,CANNON,ALL};
 	public enum TERRITORY{
 		//NORTH AMERICA
     ALASKA,

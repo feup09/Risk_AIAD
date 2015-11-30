@@ -38,6 +38,11 @@ public abstract class Player {
 
 	}
 
+	public int getNumCards(){
+
+		return playerCards.size();
+	}
+
 	public MoveTrade getTrade(){
 		MoveTrade  move= null;
 
@@ -94,6 +99,70 @@ public abstract class Player {
           dice[i] = (gerador.nextInt(6) +1); //1 a 6
       return dice;
   }
+
+	public ArrayList<Card> getTrade(){
+		ArrayList<Card> tradeDeck;
+
+		// Verifica as combinações possiveis
+		for (int i=0; i<playerCards.size(); i++){
+			for (int j=0; j<playerCards.size(); j++){
+				for (int k=0; k<playerCards.size(); k++){
+					if(i != j && i != k && j != k){
+						FIGURE card1 = playerCards.get(i).figure;
+						FIGURE card2 = playerCards.get(j).figure;
+						FIGURE card3 = playerCards.get(k).figure;
+
+						if(card1==card2
+						&& card1==card3
+						&& card2==card3 ||
+						card1!=card2
+						&& card1!=card3
+						&& card2!=card3 ){
+							ArrayList<Card> auxDeck;
+							auxDeck.add(playerCards(i));
+							auxDeck.add(playerCards(j));
+							auxDeck.add(playerCards(k));
+							tradeDeck.add(auxDeck);
+						}
+					}
+				}
+			}
+		}
+
+		// Dá uma pontuação extra aos decks possiveis baseado nos territórios
+		Hashtable bestDeck = new Hashtable();
+
+		for(int i=0; i<tradeDeck.size();i++){
+			ArrayList<Card> auxDeck=tradeDeck.get(i);
+			int valueDeck=0;
+			for(int j=0; j<auxDeck.size(); j++){
+				if(playerTerritories.contains(auxDeck.get(j).territory))
+					valueDeck++;
+			}
+			bestDeck.put(i,valueDeck);
+		}
+
+	//Escolhe o melhor deck para fazer trade
+		double max = Double.NEGATIVE_INFINITY;
+  	int maxkey=0;
+		for (int key : bestDeck.keySet()) {
+	 		if (bestDeck.get(key) > max) {
+		 	max = bestDeck.get(key);
+		 	maxkey=key;
+	 	}
+		return tradeDeck.get(maxkey);
+
+}
+
+
+
+	fwhile (enumeration.hasMoreElements()) {
+		 if (d > max) max = d;
+	}
+
+	}
+
+	public
 
   public int scoreTrade() {
       int cards = 1;
