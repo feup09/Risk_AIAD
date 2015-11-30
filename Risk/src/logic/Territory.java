@@ -7,5 +7,5 @@ public class Territory {
 	public int army;
 	public Player owner;
 	public ArrayList<Territory> neighbours;
-        public int territoryRating;
+	public int territoryRating;
 }
