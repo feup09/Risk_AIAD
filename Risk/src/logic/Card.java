@@ -16,7 +16,7 @@ public class Card {
     QUEBEC,
     WESTERN_UNITED_STATES,
 		//SOUTH AMERICA
-		ARGENTINA,
+	ARGENTINA,
     BRAZIL,
     PERU,
     VENEZUELA,
@@ -36,7 +36,7 @@ public class Card {
     NORTH_AFRICA,
     SOUTH_AFRICA,
 		//ASIA
-		AFGHANISTAN,
+	AFGHANISTAN,
     CHINA,
     INDIA,
     IRKUTSK,
@@ -59,6 +59,7 @@ public class Card {
 
 		this.figure=figure;
 		this.territory=territory;
+		System.out.println("Nova carta: Figura - " + this.figure + " Territorio -" +  this.territory);
 
 	}
 }

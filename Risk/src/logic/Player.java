@@ -2,6 +2,8 @@ package logic;
 
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Hashtable;
+import java.util.Set;
 
 public abstract class Player {
 
@@ -11,8 +13,8 @@ public abstract class Player {
 	private boolean playing;
 	public enum PLAYERTYPE {HUMAN,BOT1,BOT2,BOT3}
 	public enum PLAYERCOLOR {GREEN,BLUE,RED,YELLOW,GREY,BLACK}
-	PLAYERTYPE playertype;
-	PLAYERCOLOR playercolor;
+	PLAYERTYPE playerType;
+	PLAYERCOLOR playerColor;
 	int armies;
 
 	//personality
@@ -43,13 +45,7 @@ public abstract class Player {
 		return playerCards.size();
 	}
 
-	public MoveTrade getTrade(){
-		MoveTrade  move= null;
-
-
-		return move;
-	}
-
+	
 	public int getDeploy(GameState gs){
 		int move= 0, newScore;
                 int bestScore= -100;
@@ -135,7 +131,7 @@ public abstract class Player {
   }
 
 /*	public ArrayList<Card> getTrade(){
-		ArrayList<Card> tradeDeck;
+		ArrayList<ArrayList<Card>> tradeDeck= new ArrayList<ArrayList<Card>>();
 
 		// Verifica as combinações possiveis
 		for (int i=0; i<playerCards.size(); i++){
@@ -152,10 +148,10 @@ public abstract class Player {
 						card1!=card2
 						&& card1!=card3
 						&& card2!=card3 ){
-							ArrayList<Card> auxDeck;
-							auxDeck.add(playerCards(i));
-							auxDeck.add(playerCards(j));
-							auxDeck.add(playerCards(k));
+							ArrayList<Card> auxDeck= new ArrayList<Card>();
+							auxDeck.add(playerCards.get(i));
+							auxDeck.add(playerCards.get(j));
+							auxDeck.add(playerCards.get(k));
 							tradeDeck.add(auxDeck);
 						}
 					}
@@ -164,7 +160,7 @@ public abstract class Player {
 		}
 
 		// Dá uma pontuação extra aos decks possiveis baseado nos territórios
-		Hashtable bestDeck = new Hashtable();
+		Hashtable<Integer,Integer> bestDeck = new Hashtable<Integer,Integer>();
 
 		for(int i=0; i<tradeDeck.size();i++){
 			ArrayList<Card> auxDeck=tradeDeck.get(i);
@@ -178,37 +174,25 @@ public abstract class Player {
 
 	//Escolhe o melhor deck para fazer trade
 		double max = Double.NEGATIVE_INFINITY;
-  	int maxkey=0;
-		for (int key : bestDeck.keySet()) {
+		int maxkey=0;
+		Set<Integer> keys = bestDeck.keySet();
+		for (Integer key : keys) {
 	 		if (bestDeck.get(key) > max) {
 		 	max = bestDeck.get(key);
 		 	maxkey=key;
-	 	}
+	 		}
+		}
+		
 		return tradeDeck.get(maxkey);
-
-}
-
-
-
-	fwhile (enumeration.hasMoreElements()) {
-		 if (d > max) max = d;
 	}
 
-	}
 
-  public int scoreTrade() {
-      int cards = 1;
-      int score = 0;
-      for (int i=0; i< this.playerCards.size(); i++)
-          cards = cards * this.playerCards.get(i).value;
 
-      if( (cards % 8) == 0)  score = 8;
-      if( (cards % 27) == 0)  score = 27;
-      if( (cards % 125) == 0)  score = 125;
-      if( (cards % 30) == 0)  score = 30;
+	
 
-      return score;
-  }*/
+	
+
+
 
     public int scoreDeploy(GameState gs, int terr){
         int allyArmy = 0;
