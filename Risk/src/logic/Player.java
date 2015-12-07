@@ -29,9 +29,9 @@ public abstract class Player {
 
 		playerId = id;
 		playing = true;
-		this.playerType = type;
-		this.playerColor = color;
-    this.setPersonality();
+		this.playertype = type;
+		this.playercolor = color;
+                this.setPersonality();
 
 		playerTerritories = new ArrayList<Territory>();
 		playerCards = new ArrayList<Card>();
@@ -50,45 +50,79 @@ public abstract class Player {
 		return move;
 	}
 
-	public MoveDeploy getDeploy(){
-		MoveDeploy  move= null;
-
-
+	public int getDeploy(GameState gs){
+		int move= 0, newScore;
+                int bestScore= -100;
+                Territory aux;
+                for(int i=0; i<this.playerTerritories.size(); i++) { //Corro o vetor de territórios que em pertencem
+                    aux = this.playerTerritories.get(i);
+                    newScore = this.scoreDeploy(gs, aux.id); //Pontuo a colocação de exércitos em cada território
+                    if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
+                        bestScore = newScore;
+                        move = aux.id;
+                    }
+                }
 		return move;
 	}
 
 
-	public MoveAttack getAttack(){
-		MoveAttack  move= null;
-
-
-		return move;
+	public int[] getAttack(GameState gs){
+            int move[]= new int[2];
+            double bestScore= -100;
+            double newScore;
+            Territory from = null, to= null;
+            for(int i=0; i<this.playerTerritories.size(); i++) { //Corro o vetor de territórios que em pertencem
+                from = this.playerTerritories.get(i);
+                for(int j=0; j<from.neighbours.size(); j++) { //Corro o vetor de territórios adjacente a esse território
+                    to = from.neighbours.get(j);
+                    newScore = this.scoreAtack(gs, from.id, to.id); //Pontuo o ataque do territorio "from"  para "to"
+                    if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
+                        bestScore = newScore;
+                        move[0] = from.id;
+                        move[1] = to.id;
+                    }
+                }
+            }
+            return move;
 	}
 
-	public MoveFortify getFortify(){
-		MoveFortify  move= null;
-
-
-		return move;
+	public int[] getFortify(GameState gs){
+            int move[]= new int[2];
+            double bestScore= -100;
+            double newScore;
+            Territory from = null, to= null;
+            for(int i=0; i<this.playerTerritories.size(); i++) { //Corro o vetor de territórios que em pertencem
+                from = this.playerTerritories.get(i);
+                for(int j=0; j<from.neighbours.size(); j++) { //Corro o vetor de territórios adjacente a esse território
+                    to = from.neighbours.get(j);
+                    newScore = this.scoreFortify(gs, from.id, to.id); //Pontuo o ataque do territorio "from"  para "to"
+                    if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
+                        bestScore = newScore;
+                        move[0] = from.id;
+                        move[1] = to.id;
+                    }
+                }
+            }
+            return move;
 	}
 
   public void setPersonality()
   {
-			// Um boolean por default já é false
-      //this.optimist = false;
-      //this.impulsive = false;
-      //this.vingative = false;
-      boolean result[] = new boolean[3];
-      Random gerador = new Random();
+    // Um boolean por default já é false
+    this.optimist = false;
+    this.impulsive = false;
+    this.vingative = false;
+    boolean result[] = new boolean[3];
+    Random gerador = new Random();
 
-      int personality = gerador.nextInt(8)+1; //1 a 8
+    int personality = gerador.nextInt(8)+1; //1 a 8
 
-      if( (personality % 2) == 0)
-          this.optimist = true;
-      if( personality<5 )
-          this.impulsive = true;
-      if( (personality > 3) && (personality < 7))
-          this.vingative = true;
+    if( (personality % 2) == 0)
+        this.optimist = true;
+    if( personality<5 )
+        this.impulsive = true;
+    if( (personality > 3) && (personality < 7))
+        this.vingative = true;
   }
 
   public int[] throwDice(int number)
@@ -100,7 +134,7 @@ public abstract class Player {
       return dice;
   }
 
-	public ArrayList<Card> getTrade(){
+/*	public ArrayList<Card> getTrade(){
 		ArrayList<Card> tradeDeck;
 
 		// Verifica as combinações possiveis
@@ -108,9 +142,9 @@ public abstract class Player {
 			for (int j=0; j<playerCards.size(); j++){
 				for (int k=0; k<playerCards.size(); k++){
 					if(i != j && i != k && j != k){
-						FIGURE card1 = playerCards.get(i).figure;
-						FIGURE card2 = playerCards.get(j).figure;
-						FIGURE card3 = playerCards.get(k).figure;
+						Card.FIGURE card1 = playerCards.get(i).figure;
+						Card.FIGURE card2 = playerCards.get(j).figure;
+						Card.FIGURE card3 = playerCards.get(k).figure;
 
 						if(card1==card2
 						&& card1==card3
@@ -162,8 +196,6 @@ public abstract class Player {
 
 	}
 
-	public
-
   public int scoreTrade() {
       int cards = 1;
       int score = 0;
@@ -176,75 +208,81 @@ public abstract class Player {
       if( (cards % 30) == 0)  score = 30;
 
       return score;
-  }
+  }*/
 
-	public int scoreDeploy(GameState gs, int terr){
-      int allyArmy = 0;
-      int enemyArmy = 0;
+    public int scoreDeploy(GameState gs, int terr){
+        int allyArmy = 0;
+        int enemyArmy = 0;
 
-      //Contar exércitos
-      Territory aux = gs.territories.get(terr);
-      if(aux.owner == this){                              //Estou num território deste player
+        //Contar exércitos
+        Territory aux = gs.territories.get(terr);
+        if(aux.owner == this){                              //Estou num território deste player
           for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
               if(aux.neighbours.get(i).owner == this)     //Vizinho é o player
                   allyArmy = allyArmy + aux.army;         //Aumento aliados
               if(aux.neighbours.get(i).owner != this)     //Vizinho não é o player
                   enemyArmy = enemyArmy + aux.army;       //Aumento inimigos
           }
-      }
-      int score = - allyArmy + enemyArmy;
-      return score;
-	  }
+        }
+        int score = - allyArmy + enemyArmy;
+        return score;
+    }
 
-	  public double scoreAtack(GameState gs, int fromTerr, int toTerr, int atk) {
-	    //atk deve estar entre 1 e 3
-	    int allyArmy=0;
-	    int enemyArmy=0;
-	    double probVictory;
+public double scoreAtack(GameState gs, int fromTerr, int toTerr) {
+    int allyArmy=0;
+    int enemyArmy=0;
+    double probVictory;
 
-	    Territory aux = gs.territories.get(toTerr);
+    Territory aux = gs.territories.get(toTerr);
 
-	    if(aux.owner == this){                              //Entre os vizinhos do territorio atacado
-	        for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
-	            if(aux.neighbours.get(i).owner == this)     //Vizinho é o player
-	                allyArmy = allyArmy + aux.army-1;       //Conto tropas que podem atacar
-	            if(aux.neighbours.get(i).owner != this)     //Vizinho não é o player
-	                enemyArmy = enemyArmy + aux.army;       //Aumento inimigos
-	        }
-	  	 }
+    if(aux.owner == this){                              //Entre os vizinhos do territorio atacado
+        for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
+            if(aux.neighbours.get(i).owner == this)     //Vizinho é o player
+                allyArmy = allyArmy + aux.army-1;       //Conto tropas que podem atacar
+            if(aux.neighbours.get(i).owner != this)     //Vizinho não é o player
+                enemyArmy = enemyArmy + aux.army;       //Aumento inimigos
+        }
+    }
 
-      //Se o jogador tiver pelo menos 2 tropas vai defender com 2 unidades
-      if(aux.army > 1)
-          probVictory = gs.getWin(atk, aux.army);
-      else
-          probVictory = gs.getWin(atk, 1);
+    int nAtk = gs.territories.get(fromTerr).army - 1;
+    if (nAtk>3) nAtk = 3;
+    //Se o jogador tiver pelo menos 2 tropas vai defender com 2 unidades
+    if(aux.army > 1)
+    probVictory = gs.getWin(nAtk, 2);
+    else
+    probVictory = gs.getWin(nAtk, 1);
 
-      double probRetaliation = 0;
-      if(aux.owner.vingative == true)
-          probRetaliation = 1;
+    double probRetaliation = 0;
+    if(aux.owner.vingative == true)
+    probRetaliation = 1;
 
-      int territoryRating = aux.territoryRating;
+    int territoryRating = aux.territoryRating;
 
-      double score = probVictory*territoryRating - probRetaliation*enemyArmy;
-      return score;
-	  }
+    double score = probVictory*territoryRating - probRetaliation*enemyArmy;
+    return score;
+}
 
-	  public int scoreFortify(GameState gs, int fromTerr, int toTerr) {
-      int enemyArmy = 0;
 
-      //Contar exércitos
-      Territory aux = gs.territories.get(toTerr);
-      if(aux.owner == this){                              //Estou num território deste player
-          for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
-              if(aux.neighbours.get(i).owner != this)     //Vizinho não é o player
-                  enemyArmy = enemyArmy + aux.army;       //Aumento inimigos
-          }
-      }
+    public int scoreFortify(GameState gs, int fromTerr, int toTerr) {
+        int enemyArmy = 0;
 
-      int displacedArmy = gs.territories.get(toTerr).army-1;
-      //falta adicionar movesToFrontier;
 
-      int score = displacedArmy + enemyArmy; //-movesToFrontier
-      return score;
-   }
+        int movesToFrontier = 100; // Se a fronteira ficar a mais de 1 movimento ignoro a jogada
+
+        //Contar exércitos
+        Territory aux = gs.territories.get(toTerr);
+        if(aux.owner == this){                              //Estou num território deste player
+            for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
+                if(aux.neighbours.get(i).owner != this)  {   //Vizinho não é o player
+                    enemyArmy = enemyArmy + aux.army;       //Aumento inimigos
+                    movesToFrontier =movesToFrontier*0;
+                  }
+            }
+        }
+
+        int displacedArmy = gs.territories.get(toTerr).army-1;      
+
+        int score = displacedArmy + enemyArmy - movesToFrontier;
+        return score;
+    }
  }
