@@ -1,21 +1,28 @@
 package logic;
 
+import jade.core.Agent;
+import jade.core.behaviours.SimpleBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.domain.FIPAException;
+import jade.lang.acl.ACLMessage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Hashtable;
 import java.util.Set;
 
-public abstract class Player {
-
-
+public class Player extends Agent{
 
 	private int playerId;
 	private boolean playing;
-	public enum PLAYERTYPE {HUMAN,BOT1,BOT2,BOT3}
+	public enum PLAYERTYPE {HUMAN, BOT, MEGABOT}
 	public enum PLAYERCOLOR {GREEN,BLUE,RED,YELLOW,GREY,BLACK}
 	PLAYERTYPE playerType;
 	PLAYERCOLOR playerColor;
 	int armies;
+        GameState gs;
 
 	//personality
 	private boolean optimist;
@@ -25,8 +32,16 @@ public abstract class Player {
 	private ArrayList<Territory> playerTerritories;
 	private ArrayList<Card> playerCards;
 
-	public abstract boolean isHuman();
+	private boolean isHuman;
 
+        public boolean getIsHuman() {
+            return isHuman;
+        }
+        
+        public void setIsHuman(boolean is) {
+            isHuman = is;
+        }
+        
 	public Player(int id, PLAYERTYPE type, PLAYERCOLOR color ){
 
 		playerId = id;
@@ -44,10 +59,9 @@ public abstract class Player {
 
 		return playerCards.size();
 	}
-
 	
-	public int getDeploy(GameState gs){
-		int move= 0, newScore;
+	public int[] getDeploy(GameState gs){
+		int move[]= {0}, newScore;
                 int bestScore= -100;
                 Territory aux;
                 for(int i=0; i<this.playerTerritories.size(); i++) { //Corro o vetor de territórios que em pertencem
@@ -55,10 +69,12 @@ public abstract class Player {
                     newScore = this.scoreDeploy(gs, aux.id); //Pontuo a colocação de exércitos em cada território
                     if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
                         bestScore = newScore;
-                        move = aux.id;
+                        move[0] = aux.id;
                     }
                 }
-		return move;
+		if (bestScore > -100)
+                    return move;
+                else return null;
 	}
 
 
@@ -79,7 +95,9 @@ public abstract class Player {
                     }
                 }
             }
-            return move;
+            if ((bestScore > -100) && this.impulsive || (bestScore>0 && !this.impulsive) )
+                return move;
+            else return null;
 	}
 
 	public int[] getFortify(GameState gs){
@@ -99,11 +117,12 @@ public abstract class Player {
                     }
                 }
             }
-            return move;
+            if (bestScore > -100 )
+                return move;
+            else return null;
 	}
 
-  public void setPersonality()
-  {
+        public void setPersonality() {
     // Um boolean por default já é false
     this.optimist = false;
     this.impulsive = false;
@@ -121,8 +140,7 @@ public abstract class Player {
         this.vingative = true;
   }
 
-  public int[] throwDice(int number)
-  {
+        public int[] throwDice(int number)  {
       Random gerador = new Random();
       int dice[] = new int[number];
       for (int i=0; i< number; i++)
@@ -130,7 +148,7 @@ public abstract class Player {
       return dice;
     }
 
-    public ArrayList<Card> getTrade(){
+        public ArrayList<Card> getTrade(){
             ArrayList<ArrayList<Card>> tradeDeck= new ArrayList<ArrayList<Card>>();
 
             // Verifica as combinações possiveis
@@ -186,87 +204,252 @@ public abstract class Player {
             return tradeDeck.get(maxkey);
     }
 
+        public int scoreDeploy(GameState gs, int terr){
+            int allyArmy = 0;
+            int enemyArmy = 0;
 
-
-	
-
-	
-
-
-
-    public int scoreDeploy(GameState gs, int terr){
-        int allyArmy = 0;
-        int enemyArmy = 0;
-
-        //Contar exércitos
-        Territory aux = gs.territories.get(terr);
-        if(aux.owner == this){                              //Estou num território deste player
-          for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
-              if(aux.neighbours.get(i).owner == this)     //Vizinho é o player
-                  allyArmy = allyArmy + aux.army;         //Aumento aliados
-              if(aux.neighbours.get(i).owner != this)     //Vizinho não é o player
-                  enemyArmy = enemyArmy + aux.army;       //Aumento inimigos
-          }
+            //Contar exércitos
+            Territory aux = gs.territories.get(terr);
+            if(aux.owner == this){                            //Estou num território deste player
+              for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
+                  if(aux.neighbours.get(i).owner == this)     //Vizinho é o player
+                      allyArmy = allyArmy + aux.army;         //Aumento aliados
+                  if(aux.neighbours.get(i).owner != this)     //Vizinho não é o player
+                      enemyArmy = enemyArmy + aux.army;       //Aumento inimigos
+              }
+            }
+            int score = - allyArmy + enemyArmy;
+            return score;
         }
-        int score = - allyArmy + enemyArmy;
-        return score;
-    }
 
-public double scoreAtack(GameState gs, int fromTerr, int toTerr) {
-    int allyArmy=0;
-    int enemyArmy=0;
-    double probVictory;
+        public double scoreAtack(GameState gs, int fromTerr, int toTerr) {
+        int allyArmy=0;
+        int enemyArmy=0;
+        double probVictory=0;
 
-    Territory aux = gs.territories.get(toTerr);
-
-    if(aux.owner == this){                              //Entre os vizinhos do territorio atacado
-        for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
-            if(aux.neighbours.get(i).owner == this)     //Vizinho é o player
-                allyArmy = allyArmy + aux.army-1;       //Conto tropas que podem atacar
-            if(aux.neighbours.get(i).owner != this)     //Vizinho não é o player
-                enemyArmy = enemyArmy + aux.army;       //Aumento inimigos
-        }
-    }
-
-    int nAtk = gs.territories.get(fromTerr).army - 1;
-    if (nAtk>3) nAtk = 3;
-    //Se o jogador tiver pelo menos 2 tropas vai defender com 2 unidades
-    if(aux.army > 1)
-    probVictory = gs.getWin(nAtk, 2);
-    else
-    probVictory = gs.getWin(nAtk, 1);
-
-    double probRetaliation = 0;
-    if(aux.owner.vingative == true)
-    probRetaliation = 1;
-
-    int territoryRating = aux.territoryRating;
-
-    double score = probVictory*territoryRating - probRetaliation*enemyArmy;
-    return score;
-}
-
-
-    public int scoreFortify(GameState gs, int fromTerr, int toTerr) {
-        int enemyArmy = 0;
-
-
-        int movesToFrontier = 100; // Se a fronteira ficar a mais de 1 movimento ignoro a jogada
-
-        //Contar exércitos
         Territory aux = gs.territories.get(toTerr);
-        if(aux.owner == this){                              //Estou num território deste player
+
+        if(aux.owner == this){                              //Entre os vizinhos do territorio atacado
             for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
-                if(aux.neighbours.get(i).owner != this)  {   //Vizinho não é o player
+                if(aux.neighbours.get(i).owner == this)     //Vizinho é o player
+                    allyArmy = allyArmy + aux.army-1;       //Conto tropas que podem atacar
+                if(aux.neighbours.get(i).owner != this)     //Vizinho não é o player
                     enemyArmy = enemyArmy + aux.army;       //Aumento inimigos
-                    movesToFrontier =movesToFrontier*0;
-                  }
             }
         }
 
-        int displacedArmy = gs.territories.get(toTerr).army-1;      
+        int nAtk = gs.territories.get(fromTerr).army - 1;
+        if (nAtk>3) nAtk = 3;
+        //Se o jogador tiver pelo menos 2 tropas vai defender com 2 unidades
+        if(aux.army > 1)
+        probVictory = gs.getWin(nAtk, 2);
+        else
+        probVictory = gs.getWin(nAtk, 1);
 
-        int score = displacedArmy + enemyArmy - movesToFrontier;
+        double probRetaliation = 0;
+        if(aux.owner.vingative == true)
+        probRetaliation = 1;
+
+        int territoryRating = aux.territoryRating;
+
+        double score = probVictory*territoryRating - probRetaliation*enemyArmy;
         return score;
     }
+
+        public int scoreFortify(GameState gs, int fromTerr, int toTerr) {
+            int enemyArmy = 0;
+
+
+            int movesToFrontier = 100; // Se a fronteira ficar a mais de 1 movimento ignoro a jogada
+
+            //Contar exércitos
+            Territory aux = gs.territories.get(toTerr);
+            if(aux.owner == this){                              //Estou num território deste player
+                for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
+                    if(aux.neighbours.get(i).owner != this)  {   //Vizinho não é o player
+                        enemyArmy = enemyArmy + aux.army;       //Aumento inimigos
+                        movesToFrontier =movesToFrontier*0;
+                      }
+                }
+            }
+
+            int displacedArmy = gs.territories.get(toTerr).army-1;      
+
+            int score = displacedArmy + enemyArmy - movesToFrontier;
+            return score;
+        }
+
+        public int scorePlayer(int id, GameState gs){
+            int alliedArmy = 0;
+            Territory mine;
+            Territory adja;
+            Player evalPlayer = gs.players.get(id);
+            int numTerritories = evalPlayer.playerTerritories.size();   //Quantos exercitos tem player?
+
+            for(int i=0; i< this.playerTerritories.size(); i++) {       //Corro territórios deste player
+                mine = this.playerTerritories.get(i);                   
+                  for (int j=0; j< mine.neighbours.size(); j++) {       //Corro todos os vizinhos desse territorio
+                      adja = mine.neighbours.get(j);
+                      if(mine.owner == evalPlayer)                      //Adjacente pertende a player avaliado?
+                          alliedArmy = alliedArmy + adja.army;          //Aumento aliados
+                  }
+            }
+
+            int score = alliedArmy + numTerritories;
+            return score;
+        }
+
+    
+    
+    
+    
+       
+    public int armyPi =0;
+    public int armyPo =0;
+     /**/
+    // classe do behaviour
+    class PingPongBehaviour extends SimpleBehaviour {
+        private int n = 0;
+
+        // construtor do behaviour
+        public PingPongBehaviour(Agent a) {
+            super(a); 
+        }
+
+        // metodo action
+        public void action() {
+           ACLMessage msg = blockingReceive();
+           if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL){
+           }
+           if (msg.getPerformative() == ACLMessage.REJECT_PROPOSAL){
+           }
+           if((msg.getPerformative() == ACLMessage.PROPOSE)) {
+              System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
+              // cria resposta
+              ACLMessage reply = msg.createReply();
+              // preenche conteedo da mensagem
+              String response = msg.getContent();
+              //armyPo = Integer.parseInt(response.substring(6));
+              System.err.println(msg.getSender().getName());
+              System.err.println("armypo: " + armyPo);
+              System.err.println("armyPi: " + armyPi);
+              if(response.contains("Ally? ")) { 
+                reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                reply.setContent("Sure."); 
+              }
+              else {
+                reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+                reply.setContent("Nope");
+              } 
+              // envia mensagem
+              send(reply);
+           }
+        }
+
+        
+
+        // metodo done
+        public boolean done() {
+           return n==1;
+        }
+
+   }   // fim da classe PingPongBehaviour
+
+    class GameBehaviour extends SimpleBehaviour {
+        private int n = 0;
+
+        // construtor do behaviour
+        public GameBehaviour(Agent a) {
+            super(a); 
+        }
+
+        // metodo action
+        public void action() {
+           ACLMessage msg = blockingReceive();
+           if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL){
+           }
+           if (msg.getPerformative() == ACLMessage.REJECT_PROPOSAL){
+           }
+           if((msg.getPerformative() == ACLMessage.PROPOSE)) {
+              System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
+              // cria resposta
+              ACLMessage reply = msg.createReply();
+              // preenche conteedo da mensagem
+              String response = msg.getContent();
+              //armyPo = Integer.parseInt(response.substring(6));
+              System.err.println(msg.getSender().getName());
+              System.err.println("armypo: " + armyPo);
+              System.err.println("armyPi: " + armyPi);
+              if(response.contains("Ally? ")) { 
+                reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                reply.setContent("Sure."); 
+              }
+              else {
+                reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+                reply.setContent("Nope");
+              } 
+              // envia mensagem
+              send(reply);
+           }
+        }
+
+        
+
+        // metodo done
+        public boolean done() {
+           return n==1;
+        }
+
+   }   // fim da classe PingPongBehaviour
+
+   // metodo setup
+    protected void setup() {
+        String tipo = this.playerType.toString();
+        // regista agente no DF
+        DFAgentDescription dfd = new DFAgentDescription();
+        dfd.setName(getAID());
+        ServiceDescription sd = new ServiceDescription();
+        sd.setName(getName());
+        sd.setType("Agente " + tipo);
+        dfd.addServices(sd);
+        try {
+           DFService.register(this, dfd);
+        } catch(FIPAException e) {
+           e.printStackTrace();
+        }
+
+        // cria behaviour
+        PingPongBehaviour b = new PingPongBehaviour(this);
+        GameBehaviour c = new GameBehaviour(this);
+        if(tipo.equals("Master"))
+            addBehaviour(c);
+        else
+            addBehaviour(b);
+      
+        /*DFAgentDescription template = new DFAgentDescription();
+        ServiceDescription sd1 = new ServiceDescription();
+        sd1.setType("Agente BOT");
+        template.addServices(sd1);
+        try {
+           DFAgentDescription[] result = DFService.search(this, template);
+           ACLMessage msg = new ACLMessage(ACLMessage.PROPOSE);
+           for(int i=0; i<result.length; ++i) {
+              msg.addReceiver(result[i].getName());
+           }
+           msg.setContent("Ally? ");
+           send(msg);
+        } catch(FIPAException e) { e.printStackTrace(); }*/
+   }   // fim do metodo setup
+
+    // metodo takeDown
+    protected void takeDown() {
+        // retira registo no DF
+        try {
+            DFService.deregister(this);  
+        } catch(FIPAException e) {
+            e.printStackTrace();
+        }
+    }// fim da classe PingPong
+    
+    
  }
