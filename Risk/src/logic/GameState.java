@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 
+import logic.Card.TERRITORY;
+
 public class GameState {
 
 	public int maxPlayers;
@@ -98,7 +100,7 @@ public class GameState {
 			break;
 			default:System.out.println("Invalid number of players");
 		}
-		System.out.println("Num de exercitos por jogador" + numArmies );
+		System.out.println("Num de exércitos por jogador" + numArmies );
 		
 		newDeck();
 	}
@@ -119,10 +121,71 @@ public class GameState {
 			this.cardDeck.add(tempCard);
 		}
 		
+		for(int i=0; i<2; i++){
+			tempCard= new Card(Card.FIGURE.ALL,Card.TERRITORY.JOKER);
+			this.cardDeck.add(tempCard);
+		}
+		
+		
 
 		Collections.shuffle(this.cardDeck, new Random(seed));
 		
-		System.out.println(this.cardDeck.get(0).territory);
+		
+	}
+	
+	public void giveCards(Player player,int numTerritories){
+		for(int i=0; i<numTerritories; i++){
+			player.playerCards.add(cardDeck.get(i));
+			cardDeck.remove(i);
+		}
+	}
+	
+	public void doTrade(Player player, ArrayList<Card> cards){
+		switch(player.numTrades){
+			case 0:
+				player.armies+=4;
+				player.numTrades++;
+				break;
+			case 1:
+				player.armies+=6;
+				player.numTrades++;
+				break;
+			case 2:
+				player.armies+=8;
+				player.numTrades++;
+				break;
+			case 3:
+				player.armies+=10;
+				player.numTrades++;
+				break;
+			case 4:
+				player.armies+=12;
+				player.numTrades++;
+				break;
+			case 5:
+				player.armies+=15;
+				player.numTrades++;
+				break;
+			default:
+				player.armies+=((player.numTrades-2)*5);
+				player.numTrades++;
+				break;
+		}
+		
+		for(int i=0; i<cards.size();i++){
+				if(player.playerTerritories.contains(cards.get(i).territory))
+				{
+					player.armies+=2;
+					break;
+				}
+			}
+		
+		cardDeck.add(cards.get(0));
+		cardDeck.add(cards.get(1));
+		cardDeck.add(cards.get(2));
+		
+		
+			
 	}
 
 	public double getWin(int atk, int def) {

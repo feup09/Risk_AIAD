@@ -5,9 +5,9 @@ import java.util.Random;
 import java.util.Hashtable;
 import java.util.Set;
 
-public abstract class Player {
+import jade.core.Agent;
 
-
+public  class Player extends Agent{
 
 	private int playerId;
 	private boolean playing;
@@ -15,17 +15,18 @@ public abstract class Player {
 	public enum PLAYERCOLOR {GREEN,BLUE,RED,YELLOW,GREY,BLACK}
 	PLAYERTYPE playerType;
 	PLAYERCOLOR playerColor;
-	int armies;
+	public int armies;
+	public int numTrades;
 
 	//personality
 	private boolean optimist;
 	private boolean impulsive;
 	private boolean vingative;
 
-	private ArrayList<Territory> playerTerritories;
-	private ArrayList<Card> playerCards;
+	public ArrayList<Territory> playerTerritories;
+	public ArrayList<Card> playerCards;
 
-	public abstract boolean isHuman();
+	//public  boolean isHuman();
 
 	public Player(int id, PLAYERTYPE type, PLAYERCOLOR color ){
 
@@ -128,63 +129,74 @@ public abstract class Player {
       for (int i=0; i< number; i++)
           dice[i] = (gerador.nextInt(6) +1); //1 a 6
       return dice;
-    }
+  }
 
-    public ArrayList<Card> getTrade(){
-            ArrayList<ArrayList<Card>> tradeDeck= new ArrayList<ArrayList<Card>>();
+	public ArrayList<Card> getTrade(){
+		ArrayList<ArrayList<Card>> tradeDeck= new ArrayList<ArrayList<Card>>();
 
-            // Verifica as combinações possiveis
-            for (int i=0; i<playerCards.size(); i++){
-                    for (int j=0; j<playerCards.size(); j++){
-                            for (int k=0; k<playerCards.size(); k++){
-                                    if(i != j && i != k && j != k){
-                                            Card.FIGURE card1 = playerCards.get(i).figure;
-                                            Card.FIGURE card2 = playerCards.get(j).figure;
-                                            Card.FIGURE card3 = playerCards.get(k).figure;
+		// Verifica as combinações possiveis
+		for (int i=0; i<playerCards.size(); i++){
+			for (int j=0; j<playerCards.size(); j++){
+				for (int k=0; k<playerCards.size(); k++){
+					if(i != j && i != k && j != k){
+						Card.FIGURE card1 = playerCards.get(i).figure;
+						Card.FIGURE card2 = playerCards.get(j).figure;
+						Card.FIGURE card3 = playerCards.get(k).figure;
 
-                                            if(card1==card2
-                                            && card1==card3
-                                            && card2==card3 ||
-                                            card1!=card2
-                                            && card1!=card3
-                                            && card2!=card3 ){
-                                                    ArrayList<Card> auxDeck= new ArrayList<Card>();
-                                                    auxDeck.add(playerCards.get(i));
-                                                    auxDeck.add(playerCards.get(j));
-                                                    auxDeck.add(playerCards.get(k));
-                                                    tradeDeck.add(auxDeck);
-                                            }
-                                    }
-                            }
-                    }
-            }
+						if(card1==card2
+						&& card1==card3
+						&& card2==card3 ||
+						card1!=card2
+						&& card1!=card3
+						&& card2!=card3 ){
+							ArrayList<Card> auxDeck= new ArrayList<Card>();
+							auxDeck.add(playerCards.get(i));
+							auxDeck.add(playerCards.get(j));
+							auxDeck.add(playerCards.get(k));
+							tradeDeck.add(auxDeck);
+						}
+					}
+				}
+			}
+		}
 
-            // Dá uma pontuação extra aos decks possiveis baseado nos territórios
-            Hashtable<Integer,Integer> bestDeck = new Hashtable<Integer,Integer>();
+		// Dá uma pontuação extra aos decks possiveis baseado nos territórios
+		Hashtable<Integer,Integer> bestDeck = new Hashtable<Integer,Integer>();
 
-            for(int i=0; i<tradeDeck.size();i++){
-                    ArrayList<Card> auxDeck=tradeDeck.get(i);
-                    int valueDeck=0;
-                    for(int j=0; j<auxDeck.size(); j++){
-                            if(playerTerritories.contains(auxDeck.get(j).territory))
-                                    valueDeck++;
-                    }
-                    bestDeck.put(i,valueDeck);
-            }
+		for(int i=0; i<tradeDeck.size();i++){
+			ArrayList<Card> auxDeck=tradeDeck.get(i);
+			int valueDeck=0;
+			for(int j=0; j<auxDeck.size(); j++){
+				if(playerTerritories.contains(auxDeck.get(j).territory))
+					valueDeck++;
+			}
+			bestDeck.put(i,valueDeck);
+		}
 
-    //Escolhe o melhor deck para fazer trade
-            double max = Double.NEGATIVE_INFINITY;
-            int maxkey=0;
-            Set<Integer> keys = bestDeck.keySet();
-            for (Integer key : keys) {
-                    if (bestDeck.get(key) > max) {
-                    max = bestDeck.get(key);
-                    maxkey=key;
-                    }
-            }
-
-            return tradeDeck.get(maxkey);
-    }
+	//Escolhe o melhor deck para fazer trade
+		double max = Double.NEGATIVE_INFINITY;
+		int maxkey=0;
+		Set<Integer> keys = bestDeck.keySet();
+		for (Integer key : keys) {
+	 		if (bestDeck.get(key) > max) {
+		 	max = bestDeck.get(key);
+		 	maxkey=key;
+	 		}
+		}
+		
+		for(int i=0;i<playerCards.size();i++){
+			for(int j=0; j<tradeDeck.get(maxkey).size();j++)
+			{
+				if(playerCards.get(i).territory==tradeDeck.get(maxkey).get(j).territory
+				   && playerCards.get(i).figure==tradeDeck.get(maxkey).get(j).figure)
+				{
+					playerCards.remove(i);
+				}	
+			}
+		}
+			
+		return tradeDeck.get(maxkey);
+	}
 
 
 
