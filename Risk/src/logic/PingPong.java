@@ -23,14 +23,14 @@ public class PingPong extends Agent {
       // metodo action
       public void action() {
          ACLMessage msg = blockingReceive();
-         if(msg.getPerformative() == ACLMessage.INFORM) {
+         if(msg.getPerformative() == ACLMessage.PROPOSE) {
             System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
             // cria resposta
             ACLMessage reply = msg.createReply();
             // preenche conteedo da mensagem
-            if(msg.getContent().equals("ping"))
-               reply.setContent("pong"); 
-            else reply.setContent("ping"); 
+            if(msg.getContent().equals("Ally?"))
+               reply.setContent("Sure."); 
+            else reply.setContent("Nope"); 
             // envia mensagem
             send(reply);
          }
@@ -38,7 +38,7 @@ public class PingPong extends Agent {
 
       // metodo done
       public boolean done() {
-         return n==10;
+         return n==1;
       }
 
    }   // fim da classe PingPongBehaviour
@@ -47,10 +47,12 @@ public class PingPong extends Agent {
    // metodo setup
    protected void setup() {
       String tipo = "";
+      String army = "";
       // obtem argumentos
       Object[] args = getArguments();
-      if(args != null && args.length > 0) {
+      if(args != null && args.length > 1) {
          tipo = (String) args[0];
+         army = (String) args[1];
       } else {
          System.out.println("Nao especificou o tipo");
       }
@@ -82,10 +84,10 @@ public class PingPong extends Agent {
          try {
             DFAgentDescription[] result = DFService.search(this, template);
             // envia mensagem "pong" inicial a todos os agentes "ping"
-            ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+            ACLMessage msg = new ACLMessage(ACLMessage.PROPOSE);
             for(int i=0; i<result.length; ++i)
                msg.addReceiver(result[i].getName());
-            msg.setContent("pong");
+            msg.setContent("Ally? " + (String) args[1]);
             send(msg);
          } catch(FIPAException e) { e.printStackTrace(); }
       }

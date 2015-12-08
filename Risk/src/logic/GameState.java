@@ -98,7 +98,7 @@ public class GameState {
 			break;
 			default:System.out.println("Invalid number of players");
 		}
-		System.out.println("Num de exércitos por jogador" + numArmies );
+		System.out.println("Num de exercitos por jogador" + numArmies );
 		
 		newDeck();
 	}

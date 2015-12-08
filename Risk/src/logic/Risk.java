@@ -11,20 +11,24 @@ import logic.PingPong;
 
 public class Risk {
 
-    public static void main(String[] args) throws StaleProxyException {
+    public static void main(String[] args) throws StaleProxyException, InterruptedException {
         Runtime runtime = Runtime.instance();
         String[] arguments = new String[1];
         arguments[0] = "-gui";
         Profile profile = new BootProfileImpl(arguments);
         ContainerController mainContainer = runtime.createMainContainer(profile);
         
-        
-        arguments[0] = "ping";
-        AgentController agc = mainContainer.createNewAgent("pi1", "logic.PingPong", arguments);
+        String[] type = new String[2];
+        type[0] = "ping";
+        type[1] = "12";
+        AgentController agc = mainContainer.createNewAgent("pi", "logic.PingPong", arguments);
         agc.start();
         
-        arguments[0] = "pong";
-        AgentController agc2 = mainContainer.createNewAgent("po1", "logic.PingPong", arguments);
+        Thread.sleep(1000);
+        
+        type[0] = "pong";
+        type[1] = "15";
+        AgentController agc2 = mainContainer.createNewAgent("po", "logic.PingPong", arguments);
         agc2.start();
         
     }
