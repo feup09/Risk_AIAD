@@ -17,6 +17,7 @@ public class Player extends Agent{
 
 	private int playerId;
 	private boolean playing;
+        public ArrayList<Player> allies;
 	public enum PLAYERTYPE {HUMAN, BOT, MEGABOT}
 	public enum PLAYERCOLOR {GREEN,BLUE,RED,YELLOW,GREY,BLACK}
 	PLAYERTYPE playerType;
@@ -303,11 +304,7 @@ public class Player extends Agent{
     
     
     
-       
-    public int armyPi =0;
-    public int armyPo =0;
-     /**/
-    // classe do behaviour
+    // classe do comunicacao players
     class PingPongBehaviour extends SimpleBehaviour {
         private int n = 0;
 
@@ -318,42 +315,46 @@ public class Player extends Agent{
 
         // metodo action
         public void action() {
-           ACLMessage msg = blockingReceive();
-           if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL){
-           }
-           if (msg.getPerformative() == ACLMessage.REJECT_PROPOSAL){
-           }
-           if((msg.getPerformative() == ACLMessage.PROPOSE)) {
-              System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
-              // cria resposta
-              ACLMessage reply = msg.createReply();
-              // preenche conteedo da mensagem
-              String response = msg.getContent();
-              //armyPo = Integer.parseInt(response.substring(6));
-              System.err.println(msg.getSender().getName());
-              System.err.println("armypo: " + armyPo);
-              System.err.println("armyPi: " + armyPi);
-              if(response.contains("Ally? ")) { 
-                reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-                reply.setContent("Sure."); 
-              }
-              else {
-                reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-                reply.setContent("Nope");
-              } 
-              // envia mensagem
-              send(reply);
-           }
-        }
-
+            ACLMessage msg = blockingReceive();
+            if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL){  //O player recebe vetor com jogadores que aceitam alianca
+                int id = Integer.parseInt(msg.getContent());
+                Player p = gs.players.get(id);
+                allies.add(p);  }
+            
+            if (playerTerritories.size() < 3){ //Se o player estiver em situação de perigo pede aliança atraves do gamemaster
+                DFAgentDescription template = new DFAgentDescription();
+                ServiceDescription sd1 = new ServiceDescription();
+                sd1.setType("Agente Master");
+                template.addServices(sd1);
+                try {
+                    DFAgentDescription[] result = DFService.search(myAgent, template);
+                    // envia mensagem de aliança a todos os agentes
+                    msg = new ACLMessage(ACLMessage.QUERY_IF);
+                    for(int i=0; i<result.length; ++i)
+                        msg.addReceiver(result[i].getName());
+                    msg.setContent(""+playerId); 
+                    send(msg);
+                } catch(FIPAException e) { e.printStackTrace(); }  }
+            
+            if((msg.getPerformative() == ACLMessage.PROPOSE)) {  //Os players devem avaliar a alianca e enviar o id se estiverem interessados
+                int idAlly = Integer.parseInt(msg.getContent());
+                //GameState gs = (GameState) msg.getContent();
+                System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
+                // cria resposta
+                ACLMessage reply = msg.createReply();
+                // preenche conteedo da mensagem
+                String response = msg.getContent();
+                if(scorePlayer(idAlly, gs) >  0) { 
+                  reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                  reply.setContent(""+playerId); 
+                }
+                else {
+                  reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+                } 
+                // envia mensagem
+                send(reply); }  }
         
-
-        // metodo done
-        public boolean done() {
-           return n==1;
-        }
-
-   }   // fim da classe PingPongBehaviour
+            public boolean done() { return n==1; }  }   // fim da classe PingPongBehaviour
 
     class GameBehaviour extends SimpleBehaviour {
         private int n = 0;
@@ -365,42 +366,37 @@ public class Player extends Agent{
 
         // metodo action
         public void action() {
-           ACLMessage msg = blockingReceive();
-           if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL){
-           }
-           if (msg.getPerformative() == ACLMessage.REJECT_PROPOSAL){
-           }
-           if((msg.getPerformative() == ACLMessage.PROPOSE)) {
-              System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
-              // cria resposta
-              ACLMessage reply = msg.createReply();
-              // preenche conteedo da mensagem
-              String response = msg.getContent();
-              //armyPo = Integer.parseInt(response.substring(6));
-              System.err.println(msg.getSender().getName());
-              System.err.println("armypo: " + armyPo);
-              System.err.println("armyPi: " + armyPi);
-              if(response.contains("Ally? ")) { 
-                reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-                reply.setContent("Sure."); 
-              }
-              else {
-                reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-                reply.setContent("Nope");
-              } 
-              // envia mensagem
-              send(reply);
-           }
-        }
-
-        
+            ACLMessage msg = blockingReceive();
+            ACLMessage reply = msg.createReply();
+            if((msg.getPerformative() == ACLMessage.QUERY_IF)) { //Recebeu pedido de alianca
+                DFAgentDescription template = new DFAgentDescription();
+                ServiceDescription sd1 = new ServiceDescription();
+                sd1.setType("Agente BOT");
+                template.addServices(sd1);
+                try {
+                    DFAgentDescription[] result = DFService.search(myAgent, template);
+                    // envia mensagem de aliança a todos os agentes BOT
+                    reply = new ACLMessage(ACLMessage.PROPOSE);
+                    for(int i=0; i<result.length; ++i)
+                        reply.addReceiver(result[i].getName());
+                    reply.setContent(msg.getContent()); 
+                    send(reply);
+                } catch(FIPAException e) { e.printStackTrace(); } }  
+            
+            if((msg.getPerformative() == ACLMessage.INFORM)) { //Envia pedido de jogada *ainda nao acabou*
+                System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
+                // cria resposta
+                reply = msg.createReply();
+                // preenche conteedo da mensagem
+                String response = msg.getContent();
+                  reply.setPerformative(ACLMessage.PROPOSE);
+                  int move[] = getAttack(gs);
+                  reply.setContent(msg.getContent());
+                // envia mensagem
+                send(reply); }   }
 
         // metodo done
-        public boolean done() {
-           return n==1;
-        }
-
-   }   // fim da classe PingPongBehaviour
+        public boolean done() {  return n==1;  } }   // fim da classe PingPongBehaviour
 
    // metodo setup
     protected void setup() {
@@ -425,20 +421,6 @@ public class Player extends Agent{
             addBehaviour(c);
         else
             addBehaviour(b);
-      
-        /*DFAgentDescription template = new DFAgentDescription();
-        ServiceDescription sd1 = new ServiceDescription();
-        sd1.setType("Agente BOT");
-        template.addServices(sd1);
-        try {
-           DFAgentDescription[] result = DFService.search(this, template);
-           ACLMessage msg = new ACLMessage(ACLMessage.PROPOSE);
-           for(int i=0; i<result.length; ++i) {
-              msg.addReceiver(result[i].getName());
-           }
-           msg.setContent("Ally? ");
-           send(msg);
-        } catch(FIPAException e) { e.printStackTrace(); }*/
    }   // fim do metodo setup
 
     // metodo takeDown
@@ -450,6 +432,5 @@ public class Player extends Agent{
             e.printStackTrace();
         }
     }// fim da classe PingPong
-    
-    
+
  }

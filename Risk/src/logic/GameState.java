@@ -1,17 +1,14 @@
 package logic;
 
-import java.io.Console;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 import jade.BootProfileImpl;
-import jade.core.MainContainer;
 import jade.core.Profile;
 import jade.core.Runtime;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
-import logic.PingPong;
 
 public class GameState {
 
