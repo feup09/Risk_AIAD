@@ -79,21 +79,21 @@ public class Player extends Agent{
             else return null;
     }
     
-    public int[] getOcuppy(GameState gs){
-            int move[]= {0}, newScore;
-            int bestScore= -100;
+    public void getOcuppy(GameState gs){
+            int move[]= {0};
+            int i=0;
             Territory aux;
-            for(int i=0; i<this.playerTerritories.size(); i++) { //Corro o vetor de territórios que em pertencem
-                aux = this.playerTerritories.get(i);
-                newScore = this.scoreDeploy(gs, aux.id); //Pontuo a colocação de exércitos em cada território
-                if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
-                    bestScore = newScore;
-                    move[0] = aux.id;
-                }
+            
+            Random gerador = new Random();
+            i = (gerador.nextInt(42));
+            
+            aux = gs.territories.get(i);
+            while(aux.owner == null) { // Entra num ciclo ate encontrar proximo territorio nao ocupado
+                i++;
+                if(i>42) i=0;
             }
-            if (bestScore > -100)
-                return move;
-            else return null;
+            aux.owner = this;
+            aux.army =1;
     }
 
 

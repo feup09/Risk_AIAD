@@ -41,7 +41,6 @@ public class GameState {
             players.get(j).getOcuppy(this);
             j++;
             if(j==(numPlayers -1)) j=0;
-            
         }
     }
 	
