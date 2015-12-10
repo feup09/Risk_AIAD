@@ -52,7 +52,8 @@ public class Card {
 		EASTERN_AUSTRALIA,
     INDONESIA,
     NEW_GUINEA,
-    WESTERN_AUSTRALIA
+    WESTERN_AUSTRALIA,
+    JOKER
 	}
 
 	public Card(FIGURE figure,TERRITORY territory){

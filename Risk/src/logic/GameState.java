@@ -15,11 +15,11 @@ public class GameState {
 	public int maxPlayers;
 	public int numPlayers;
 
-	public ArrayList<Player> players;
-	public ArrayList<Territory> territories;
+	public ArrayList<Player> players= new ArrayList<Player>();
+	public ArrayList<Territory> territories = new ArrayList<Territory>();
 
 	public ArrayList<Card> cardDeck = new ArrayList<Card>();
-	public ArrayList<Card> usedDeck;
+	public ArrayList<Card> usedDeck = new ArrayList<Card>();
 	
 	public enum HORSETERRITORY{
 		//NORTH AMERICA
@@ -88,6 +88,7 @@ public class GameState {
 	double[][] tie = {{0, 0, 0}, {0, 0.3241, 0.3358}};
 
 	public GameState (int numPlayers) throws StaleProxyException, InterruptedException{
+            this.numPlayers=numPlayers;
             Runtime runtime = Runtime.instance();
             String[] arguments = new String[1];
             arguments[0] = "-gui";
@@ -95,36 +96,39 @@ public class GameState {
             ContainerController mainContainer = runtime.createMainContainer(profile);
 
             //Game Master
-            Player master= new Player(0,Player.PLAYERTYPE.MEGABOT,Player.PLAYERCOLOR.BLUE);
+            Player master= new Player(0,Player.PLAYERTYPE.MEGABOT,Player.PLAYERCOLOR.BLUE,this);
             master.gs=this;
             AgentController agc = mainContainer.acceptNewAgent("Master", master);
             agc.start();
+            players.add(master);
 
             Thread.sleep(1000);
 
             //Player 1
-            Player nolasco= new Player(1, Player.PLAYERTYPE.BOT, Player.PLAYERCOLOR.BLACK);
+            Player nolasco= new Player(1, Player.PLAYERTYPE.BOT, Player.PLAYERCOLOR.BLACK, this);
             AgentController agc1 = mainContainer.acceptNewAgent("nolasco", nolasco);
             agc1.start();
-
+            players.add(nolasco);
+            
             Thread.sleep(1000);
 
             //Player 2
-            Player bruno= new Player(2,Player.PLAYERTYPE.BOT, Player.PLAYERCOLOR.BLUE);
+            Player bruno= new Player(2,Player.PLAYERTYPE.BOT, Player.PLAYERCOLOR.BLUE, this);
             AgentController agc2 = mainContainer.acceptNewAgent("bruno", bruno);
             agc2.start();
-
+            players.add(bruno);
+            
             Thread.sleep(1000);
 
             //Player 3
-            Player ricardo= new Player(3, Player.PLAYERTYPE.BOT, Player.PLAYERCOLOR.GREEN);
+            Player ricardo= new Player(3, Player.PLAYERTYPE.BOT, Player.PLAYERCOLOR.GREEN, this);
             AgentController agc3 = mainContainer.acceptNewAgent("ricardo", ricardo);
             agc3.start();
+            players.add(ricardo);
             
             
             
             int numArmies=0;
-            this.numPlayers=numPlayers;
             switch(this.numPlayers){
                     case 2:numArmies=40;
                     break;
@@ -159,10 +163,71 @@ public class GameState {
 			this.cardDeck.add(tempCard);
 		}
 		
+		for(int i=0; i<2; i++){
+			tempCard= new Card(Card.FIGURE.ALL,Card.TERRITORY.JOKER);
+			this.cardDeck.add(tempCard);
+		}
+		
+		
 
 		Collections.shuffle(this.cardDeck, new Random(seed));
 		
-		System.out.println(this.cardDeck.get(0).territory);
+		
+	}
+	
+	public void giveCards(Player player,int numTerritories){
+		for(int i=0; i<numTerritories; i++){
+			player.playerCards.add(cardDeck.get(i));
+			cardDeck.remove(i);
+		}
+	}
+	
+	public void doTrade(Player player, ArrayList<Card> cards){
+		switch(player.numTrades){
+			case 0:
+				player.armies+=4;
+				player.numTrades++;
+				break;
+			case 1:
+				player.armies+=6;
+				player.numTrades++;
+				break;
+			case 2:
+				player.armies+=8;
+				player.numTrades++;
+				break;
+			case 3:
+				player.armies+=10;
+				player.numTrades++;
+				break;
+			case 4:
+				player.armies+=12;
+				player.numTrades++;
+				break;
+			case 5:
+				player.armies+=15;
+				player.numTrades++;
+				break;
+			default:
+				player.armies+=((player.numTrades-2)*5);
+				player.numTrades++;
+				break;
+		}
+		
+		for(int i=0; i<cards.size();i++){
+				if(player.playerTerritories.contains(cards.get(i).territory))
+				{
+					player.armies+=2;
+					break;
+				}
+			}
+		
+		cardDeck.add(cards.get(0));
+		cardDeck.add(cards.get(1));
+		cardDeck.add(cards.get(2));
+		
+		
+			
 	}
 
 	public double getWin(int atk, int def) {

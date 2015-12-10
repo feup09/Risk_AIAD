@@ -17,12 +17,13 @@ public class Player extends Agent{
 
 	private int playerId;
 	private boolean playing;
+        public int numTrades;
+        public int armies;
         public ArrayList<Player> allies;
 	public enum PLAYERTYPE {HUMAN, BOT, MEGABOT}
 	public enum PLAYERCOLOR {GREEN,BLUE,RED,YELLOW,GREY,BLACK}
 	PLAYERTYPE playerType;
 	PLAYERCOLOR playerColor;
-	int armies;
         GameState gs;
 
 	//personality
@@ -30,8 +31,8 @@ public class Player extends Agent{
 	private boolean impulsive;
 	private boolean vingative;
 
-	private ArrayList<Territory> playerTerritories;
-	private ArrayList<Card> playerCards;
+	public ArrayList<Territory> playerTerritories;
+	public ArrayList<Card> playerCards;
 
 	private boolean isHuman;
 
@@ -43,16 +44,17 @@ public class Player extends Agent{
             isHuman = is;
         }
         
-	public Player(int id, PLAYERTYPE type, PLAYERCOLOR color ){
-
+	public Player(int id, PLAYERTYPE type, PLAYERCOLOR color , GameState gs){
+                this.gs = gs;
 		playerId = id;
 		playing = true;
 		this.playerType = type;
 		this.playerColor = color;
                 this.setPersonality();
-
+                
 		playerTerritories = new ArrayList<Territory>();
 		playerCards = new ArrayList<Card>();
+                allies = new ArrayList<Player>();
 
 	}
 
@@ -316,12 +318,18 @@ public class Player extends Agent{
         // metodo action
         public void action() {
             ACLMessage msg = blockingReceive();
+            if (msg.getPerformative() == ACLMessage.INFORM){  //Teste
+                System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());}
+            
             if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL){  //O player recebe vetor com jogadores que aceitam alianca
+                System.err.println("acept proposol");
+                System.err.println(msg.getContent());
                 int id = Integer.parseInt(msg.getContent());
                 Player p = gs.players.get(id);
-                allies.add(p);  }
+                allies.add(p); }
             
             if (playerTerritories.size() < 3){ //Se o player estiver em situação de perigo pede aliança atraves do gamemaster
+                System.err.println("Danger!");
                 DFAgentDescription template = new DFAgentDescription();
                 ServiceDescription sd1 = new ServiceDescription();
                 sd1.setType("Agente Master");
@@ -337,6 +345,7 @@ public class Player extends Agent{
                 } catch(FIPAException e) { e.printStackTrace(); }  }
             
             if((msg.getPerformative() == ACLMessage.PROPOSE)) {  //Os players devem avaliar a alianca e enviar o id se estiverem interessados
+                System.err.println("propose");
                 int idAlly = Integer.parseInt(msg.getContent());
                 //GameState gs = (GameState) msg.getContent();
                 System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
@@ -353,19 +362,24 @@ public class Player extends Agent{
                 }  send(reply);  } // envia mensagem 
             
             if(msg.getPerformative()==ACLMessage.INFORM_IF) { //Envia pedido de jogada
+                System.err.println("pedido de jogada");
                 System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
                 // cria resposta
                 ACLMessage reply = msg.createReply();
                 // preenche conteedo da mensagem
                 String response = msg.getContent();
                   reply.setPerformative(ACLMessage.INFORM_REF);
-                  int move[] = getAttack(gs);
+                  /*int move[] = getAttack(gs);
+                  int move[] = getFortify(gs);
+                  int move[] = getDeploy(gs);
+                  int move[] = getTrade(gs);*/
+                          
                   reply.setContent(msg.getContent());
                 // envia mensagem
                 send(reply); }
         }
         
-            public boolean done() { return n==1; }  }   // fim da classe PingPongBehaviour
+            public boolean done() { return false;}  }   // fim da classe PingPongBehaviour
 
     class GameBehaviour extends SimpleBehaviour {
         private int n = 0;
@@ -406,7 +420,7 @@ public class Player extends Agent{
                 send(reply); }   }
 
         // metodo done
-        public boolean done() {  return n==1;  } }   // fim da classe PingPongBehaviour
+        public boolean done() {  return false; } }   // fim da classe GameBehaviour
 
    // metodo setup
     protected void setup() {

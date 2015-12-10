@@ -3,9 +3,10 @@ package logic;
 import jade.wrapper.StaleProxyException;
 
 public class Risk {
-    public GameState gs;
-    public void main(String[] args) throws StaleProxyException, InterruptedException {
-        gs = new GameState(3);
+    public static GameState gs;
+    public static void main(String[] args) throws StaleProxyException, InterruptedException {
+        //System.err.println("main");
+        gs = new GameState(4);
     }
     
 }
