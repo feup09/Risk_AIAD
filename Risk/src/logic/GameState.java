@@ -6,6 +6,7 @@ import java.util.Random;
 import jade.BootProfileImpl;
 import jade.core.Profile;
 import jade.core.Runtime;
+import jade.util.leap.HashMap;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
@@ -19,7 +20,30 @@ public class GameState {
 	public ArrayList<Territory> territories = new ArrayList<Territory>();
 
 	public ArrayList<Card> cardDeck = new ArrayList<Card>();
-	public ArrayList<Card> usedDeck = new ArrayList<Card>();
+        HashMap rating;
+
+    public void rondaInicial() {
+        int occupiedTerritories =0;
+        int dado[] = new int[numPlayers]; //Guarda lancar de dados para definir primeiro a jogador
+        int bestThrow=0;
+        int bestPlayer=0;
+        
+        for(int i=0; i<numPlayers; i++) {
+            dado[i] = players.get(i).throwDice(1)[0];
+            if(bestThrow < dado[i]) {
+                bestPlayer = i;
+                bestThrow = dado[i];
+            }
+        }
+        
+        int j=bestPlayer;
+        while(occupiedTerritories < 42) {
+            players.get(j).getOcuppy(this);
+            j++;
+            if(j==(numPlayers -1)) j=0;
+            
+        }
+    }
 	
 	public enum HORSETERRITORY{
 		//NORTH AMERICA
@@ -88,6 +112,13 @@ public class GameState {
 	double[][] tie = {{0, 0, 0}, {0, 0.3241, 0.3358}};
 
 	public GameState (int numPlayers) throws StaleProxyException, InterruptedException{
+            rating.put("Australia", 3.250);
+            rating.put("South America", 2.250);
+            rating.put("North America", 1.222);
+            rating.put("Africa", 1.000);
+            rating.put("Europe", 0.5571);
+            rating.put("Asia", 0.167);
+            
             this.numPlayers=numPlayers;
             Runtime runtime = Runtime.instance();
             String[] arguments = new String[1];
@@ -142,9 +173,13 @@ public class GameState {
                     break;
                     default:System.out.println("Invalid number of players");
             }
+            for(int i=0;i<this.numPlayers;i++){
+                players.get(i).armies = numArmies;
+            }
             System.out.println("Num de exercitos por jogador" + numArmies );
 
             newDeck();
+            rondaInicial();
 	}
 	
 	public void newDeck(){
@@ -175,11 +210,9 @@ public class GameState {
 		
 	}
 	
-	public void giveCards(Player player,int numTerritories){
-		for(int i=0; i<numTerritories; i++){
-			player.playerCards.add(cardDeck.get(i));
-			cardDeck.remove(i);
-		}
+	public void giveCards(Player player){
+            player.playerCards.add(cardDeck.get(0));
+            cardDeck.remove(0);
 	}
 	
 	public void doTrade(Player player, ArrayList<Card> cards){
