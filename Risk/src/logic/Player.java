@@ -350,9 +350,20 @@ public class Player extends Agent{
                 }
                 else {
                   reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-                } 
+                }  send(reply);  } // envia mensagem 
+            
+            if(msg.getPerformative()==ACLMessage.INFORM_IF) { //Envia pedido de jogada
+                System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
+                // cria resposta
+                ACLMessage reply = msg.createReply();
+                // preenche conteedo da mensagem
+                String response = msg.getContent();
+                  reply.setPerformative(ACLMessage.INFORM_REF);
+                  int move[] = getAttack(gs);
+                  reply.setContent(msg.getContent());
                 // envia mensagem
-                send(reply); }  }
+                send(reply); }
+        }
         
             public boolean done() { return n==1; }  }   // fim da classe PingPongBehaviour
 
@@ -383,15 +394,14 @@ public class Player extends Agent{
                     send(reply);
                 } catch(FIPAException e) { e.printStackTrace(); } }  
             
-            if((msg.getPerformative() == ACLMessage.INFORM)) { //Envia pedido de jogada *ainda nao acabou*
+            if(/*evento de gamemaster*/true) { //Envia pedido de jogada
                 System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
                 // cria resposta
                 reply = msg.createReply();
                 // preenche conteedo da mensagem
                 String response = msg.getContent();
-                  reply.setPerformative(ACLMessage.PROPOSE);
-                  int move[] = getAttack(gs);
-                  reply.setContent(msg.getContent());
+                reply.setPerformative(ACLMessage.INFORM_IF);
+                reply.setContent(msg.getContent());
                 // envia mensagem
                 send(reply); }   }
 
