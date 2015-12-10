@@ -37,7 +37,7 @@ public class GameState {
         }
         
         int j=bestPlayer;
-        while(occupiedTerritories < 42) {
+        while(occupiedTerritories < 42) { //Ocupamos todos territorios 
             players.get(j).getOcuppy(this);
             j++;
             if(j==(numPlayers -1)) j=0;
