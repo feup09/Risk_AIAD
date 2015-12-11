@@ -7,11 +7,15 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.UnreadableException;
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
 import java.util.Hashtable;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Player extends Agent{
 
@@ -79,24 +83,6 @@ public class Player extends Agent{
             else return null;
     }
     
-    public void getOcuppy(GameState gs){
-            int move[]= {0};
-            int i=0;
-            Territory aux;
-            
-            Random gerador = new Random();
-            i = (gerador.nextInt(42));
-            
-            aux = gs.territories.get(i);
-            while(aux.owner == null) { // Entra num ciclo ate encontrar proximo territorio nao ocupado
-                i++;
-                if(i>42) i=0;
-            }
-            aux.owner = this;
-            aux.army =1;
-    }
-
-
     public int[] getAttack(GameState gs){
         int move[]= new int[2];
         double bestScore= -100;
@@ -275,8 +261,6 @@ public class Player extends Agent{
 
     public int scoreFortify(GameState gs, int fromTerr, int toTerr) {
         int enemyArmy = 0;
-
-
         int movesToFrontier = 100; // Se a fronteira ficar a mais de 1 movimento ignoro a jogada
 
         //Contar exércitos
@@ -321,145 +305,120 @@ public class Player extends Agent{
     
     
     // classe do comunicacao players
-    class PingPongBehaviour extends SimpleBehaviour {
+    class playerBehaviour extends SimpleBehaviour {
         private int n = 0;
 
         // construtor do behaviour
-        public PingPongBehaviour(Agent a) {
+        public playerBehaviour(Agent a) {
             super(a); 
         }
 
         // metodo action
+        @Override
         public void action() {
             ACLMessage msg = blockingReceive();
-            System.err.println("armies: " + armies + "cartas:" + playerCards.toString() );
-            if (msg.getPerformative() == ACLMessage.INFORM){  //Teste
-                System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());}
-            
-            if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL){  //O player recebe vetor com jogadores que aceitam alianca
-                System.err.println("acept proposol");
-                System.err.println(msg.getContent());
-                int id = Integer.parseInt(msg.getContent());
-                Player p = gs.players.get(id);
-                allies.add(p); }
-            
-            if (playerTerritories.size() < 3){ //Se o player estiver em situação de perigo pede aliança atraves do gamemaster
-                System.err.println("Danger!");
+            if (msg.getPerformative() == ACLMessage.INFORM){ //O player envia jogadas
+                GameState state = null;
+                try {
+                    state = (GameState) msg.getContentObject();
+                } catch (UnreadableException ex) {
+                    Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
                 DFAgentDescription template = new DFAgentDescription();
                 ServiceDescription sd1 = new ServiceDescription();
-                sd1.setType("Agente Master");
+                sd1.setType("Master");
                 template.addServices(sd1);
                 try {
                     DFAgentDescription[] result = DFService.search(myAgent, template);
                     // envia mensagem de aliança a todos os agentes
-                    msg = new ACLMessage(ACLMessage.QUERY_IF);
+                    msg = new ACLMessage(ACLMessage.INFORM);
                     for(int i=0; i<result.length; ++i)
                         msg.addReceiver(result[i].getName());
-                    msg.setContent(""+playerId); 
+                    
+                    int lam[] = {4167, 5787};
+                    Message response = new Message(playerId, lam, lam, lam, lam);
+                    System.err.println(response.atack);
+                    
+                    msg.setContentObject( response);
                     send(msg);
-                } catch(FIPAException e) { e.printStackTrace(); }  }
-            
-            if((msg.getPerformative() == ACLMessage.PROPOSE)) {  //Os players devem avaliar a alianca e enviar o id se estiverem interessados
-                System.err.println("propose");
-                int idAlly = Integer.parseInt(msg.getContent());
-                //GameState gs = (GameState) msg.getContent();
-                System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
-                // cria resposta
-                ACLMessage reply = msg.createReply();
-                // preenche conteedo da mensagem
-                String response = msg.getContent();
-                if(scorePlayer(idAlly, gs) >  0) { 
-                  reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-                  reply.setContent(""+playerId); 
-                }
-                else {
-                  reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
-                }  send(reply);  } // envia mensagem 
-            
-            if(msg.getPerformative()==ACLMessage.INFORM_IF) { //Envia pedido de jogada
-                System.err.println("pedido de jogada");
-                System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
-                // cria resposta
-                ACLMessage reply = msg.createReply();
-                // preenche conteedo da mensagem
-                String response = msg.getContent();
-                  reply.setPerformative(ACLMessage.INFORM_REF);
-                  /*int move[] = getAttack(gs);
-                  int move[] = getFortify(gs);
-                  int move[] = getDeploy(gs);
-                  int move[] = getTrade(gs);*/
-                          
-                  reply.setContent(msg.getContent());
-                // envia mensagem
-                send(reply); }
+                } catch(FIPAException e) {} catch (IOException ex) {
+                    Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
+                }  }
         }
         
-            public boolean done() { return false;}  }   // fim da classe PingPongBehaviour
+        @Override
+        public boolean done() { return false;}  }
 
-    class GameBehaviour extends SimpleBehaviour {
-        private int n = 0;
-
+    // classe de comunicacao master
+    class gameMasterBehaviour extends SimpleBehaviour {
+        private int n=0;
+        
         // construtor do behaviour
-        public GameBehaviour(Agent a) {
+        public gameMasterBehaviour(Agent a) {
             super(a); 
         }
 
         // metodo action
+        @Override
         public void action() {
             ACLMessage msg = blockingReceive();
             ACLMessage reply = msg.createReply();
-            if((msg.getPerformative() == ACLMessage.QUERY_IF)) { //Recebeu pedido de alianca
+            
+            if (msg.getPerformative() == ACLMessage.INFORM){ try {
+                //O player recebe jogadas
+                Message play = (Message)msg.getContentObject();
+                System.out.println(++n + " Master recebeu " + play.atack);
+                } catch (UnreadableException | java.lang.ClassCastException ex ) {
+                    Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
+                }
+}
+            
+            if((msg.getPerformative() == ACLMessage.NOT_UNDERSTOOD)) { //O game master envia pedido de jogada
                 DFAgentDescription template = new DFAgentDescription();
                 ServiceDescription sd1 = new ServiceDescription();
-                sd1.setType("Agente BOT");
-                template.addServices(sd1);
-                try {
-                    DFAgentDescription[] result = DFService.search(myAgent, template);
-                    // envia mensagem de aliança a todos os agentes BOT
-                    reply = new ACLMessage(ACLMessage.PROPOSE);
-                    for(int i=0; i<result.length; ++i)
-                        reply.addReceiver(result[i].getName());
-                    reply.setContent(msg.getContent()); 
-                    send(reply);
-                } catch(FIPAException e) { e.printStackTrace(); } }  
-            
-            if(/*evento de gamemaster*/true) { //Envia pedido de jogada
-                System.out.println(++n + " " + getLocalName() + ": recebi " + msg.getContent());
-                // cria resposta
-                reply = msg.createReply();
-                // preenche conteedo da mensagem
-                String response = msg.getContent();
-                reply.setPerformative(ACLMessage.INFORM_IF);
-                reply.setContent(msg.getContent());
-                // envia mensagem
-                send(reply); }   }
+                for(int j=0; j<gs.numPlayers; j++){
+                    sd1.setType("Player " + j);
+                    template.addServices(sd1);
+                    try {
+                        DFAgentDescription[] result = DFService.search(myAgent, template);
+                        // envia pedido de jogada ao agente i
+                        reply = new ACLMessage(ACLMessage.INFORM);
+                        for(int i=0; i<result.length; ++i)
+                            reply.addReceiver(result[i].getName());
+                        reply.setContentObject(gs); 
+                        send(reply);
+                    } catch(FIPAException |IOException e) {} } }
+            }
 
         // metodo done
-        public boolean done() {  return false; } }   // fim da classe GameBehaviour
+        public boolean done() {  return false; } } 
 
-   // metodo setup
+    
+    // metodo setup
     protected void setup() {
-        String tipo = this.playerType.toString();
+        // cria behaviour
+        playerBehaviour player = new playerBehaviour(this);
+        gameMasterBehaviour gamemaster = new gameMasterBehaviour(this);
+        
         // regista agente no DF
         DFAgentDescription dfd = new DFAgentDescription();
+        
         dfd.setName(getAID());
         ServiceDescription sd = new ServiceDescription();
         sd.setName(getName());
-        sd.setType("Agente " + tipo);
+        if(this.playerType == PLAYERTYPE.MEGABOT) {
+            sd.setType("Master");
+            addBehaviour(gamemaster);}
+        else{
+            sd.setType("Player "+this.playerId);
+            addBehaviour(player);}
         dfd.addServices(sd);
         try {
            DFService.register(this, dfd);
         } catch(FIPAException e) {
            e.printStackTrace();
-        }
-
-        // cria behaviour
-        PingPongBehaviour b = new PingPongBehaviour(this);
-        GameBehaviour c = new GameBehaviour(this);
-        if(tipo.equals("Master"))
-            addBehaviour(c);
-        else
-            addBehaviour(b);
+        }        
    }   // fim do metodo setup
 
     // metodo takeDown

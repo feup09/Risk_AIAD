@@ -11,7 +11,7 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
-public class GameState {
+public class GameState implements java.io.Serializable{
 
 	public int maxPlayers;
 	public int numPlayers;
@@ -20,9 +20,8 @@ public class GameState {
 	public ArrayList<Territory> territories = new ArrayList<Territory>();
 
 	public ArrayList<Card> cardDeck = new ArrayList<Card>();
-        HashMap rating;
 
-    public void rondaInicial() {
+    /*public void rondaInicial() {
         int occupiedTerritories =0;
         int dado[] = new int[numPlayers]; //Guarda lancar de dados para definir primeiro a jogador
         int bestThrow=0;
@@ -42,7 +41,7 @@ public class GameState {
             j++;
             if(j==(numPlayers -1)) j=0;
         }
-    }
+    }*/
 	
 	public enum HORSETERRITORY{
 		//NORTH AMERICA
@@ -107,17 +106,10 @@ public class GameState {
 	
 
         ////http://www.datagenetics.com/blog/november22011/
-  double[][] win = {{0.4167, 0.5787, 0.6597}, {0.2546, 0.2276, 0.3717}};
+        double[][] win = {{0.4167, 0.5787, 0.6597}, {0.2546, 0.2276, 0.3717}};
 	double[][] tie = {{0, 0, 0}, {0, 0.3241, 0.3358}};
 
 	public GameState (int numPlayers) throws StaleProxyException, InterruptedException{
-            rating.put("Australia", 3.250);
-            rating.put("South America", 2.250);
-            rating.put("North America", 1.222);
-            rating.put("Africa", 1.000);
-            rating.put("Europe", 0.5571);
-            rating.put("Asia", 0.167);
-            
             this.numPlayers=numPlayers;
             Runtime runtime = Runtime.instance();
             String[] arguments = new String[1];
@@ -175,10 +167,9 @@ public class GameState {
             for(int i=0;i<this.numPlayers;i++){
                 players.get(i).armies = numArmies;
             }
-            System.out.println("Num de exercitos por jogador" + numArmies );
 
-            newDeck();
-            rondaInicial();
+            //newDeck();
+            //rondaInicial();
 	}
 	
 	public void newDeck(){
