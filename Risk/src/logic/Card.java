@@ -53,7 +53,6 @@ public class Card {
     INDONESIA,
     NEW_GUINEA,
     WESTERN_AUSTRALIA,
-    //JOKER
     JOKER
 	}
 

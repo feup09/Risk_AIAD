@@ -1,218 +1,311 @@
 package logic;
 
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.Hashtable;
+import java.util.Random;
 import java.util.Set;
 
 import jade.core.Agent;
+import jade.core.behaviours.SimpleBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
+import jade.util.leap.HashMap;
 
-public  class Player extends Agent{
+public class Player extends Agent{
 
-	private int playerId;
-	private boolean playing;
-	public enum PLAYERTYPE {HUMAN,BOT1,BOT2,BOT3}
-	public enum PLAYERCOLOR {GREEN,BLUE,RED,YELLOW,GREY,BLACK}
-	PLAYERTYPE playerType;
-	PLAYERCOLOR playerColor;
-	public int armies;
-	public int numTrades;
+    private int playerId;
+    private boolean playing;
+    public int numTrades;
+    public int armies;
+    public enum PLAYERTYPE {HUMAN, BOT, MEGABOT}
+    public enum PLAYERCOLOR {GREEN,BLUE,RED,YELLOW,GREY,BLACK}
+    PLAYERTYPE playerType;
+    PLAYERCOLOR playerColor;
+    GameState gs;
 
-	//personality
-	private boolean optimist;
-	private boolean impulsive;
-	private boolean vingative;
+    //personality
+    private double optimist;
+    private double impulsive;
+    private double vingative;
 
-	public ArrayList<Territory> playerTerritories;
-	public ArrayList<Card> playerCards;
+    public ArrayList<Territory> playerTerritories;
+    public ArrayList<Card> playerCards;
+    public ArrayList<Player> allies;
+    
+    
 
-	//public  boolean isHuman();
+    private boolean isHuman;
 
-	public Player(int id, PLAYERTYPE type, PLAYERCOLOR color ){
+    public boolean getIsHuman() {
+        return isHuman;
+    }
 
-		playerId = id;
-		playing = true;
-		this.playerType = type;
-		this.playerColor = color;
-                this.setPersonality();
+    public void setIsHuman(boolean is) {
+        isHuman = is;
+    }
 
-		playerTerritories = new ArrayList<Territory>();
-		playerCards = new ArrayList<Card>();
+    public Player(int id, PLAYERTYPE type, PLAYERCOLOR color ,double optimist,double impulsive,double vingative,  GameState gs){
+            this.gs = gs;
+            playerId = id;
+            playing = true;
+            this.playerType = type;
+            this.playerColor = color;
+            this.setPersonality(optimist,impulsive,vingative);
 
-	}
+            playerTerritories = new ArrayList<Territory>();
+            playerCards = new ArrayList<Card>();
+            allies = new ArrayList<Player>();
+            System.out.println("criou");
 
-	public int getNumCards(){
+    }
 
-		return playerCards.size();
-	}
-
-	
-	public int getDeploy(GameState gs){
-		int move= 0, newScore;
-                int bestScore= -100;
-                Territory aux;
-                for(int i=0; i<this.playerTerritories.size(); i++) { //Corro o vetor de territórios que em pertencem
-                    aux = this.playerTerritories.get(i);
-                    newScore = this.scoreDeploy(gs, aux.id); //Pontuo a colocação de exércitos em cada território
-                    if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
-                        bestScore = newScore;
-                        move = aux.id;
-                    }
-                }
-		return move;
-	}
-
-
-	public int[] getAttack(GameState gs){
-            int move[]= new int[2];
-            double bestScore= -100;
-            double newScore;
-            Territory from = null, to= null;
+    public int getNumCards(){
+        return playerCards.size();
+    }
+/*
+    public int[] getDeploy(GameState gs){
+            int move[]= {0}, newScore;
+            int bestScore= -100;
+            Territory aux;
             for(int i=0; i<this.playerTerritories.size(); i++) { //Corro o vetor de territórios que em pertencem
-                from = this.playerTerritories.get(i);
-                for(int j=0; j<from.neighbours.size(); j++) { //Corro o vetor de territórios adjacente a esse território
-                    to = from.neighbours.get(j);
-                    newScore = this.scoreAtack(gs, from.id, to.id); //Pontuo o ataque do territorio "from"  para "to"
-                    if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
-                        bestScore = newScore;
-                        move[0] = from.id;
-                        move[1] = to.id;
-                    }
+                aux = this.playerTerritories.get(i);
+                newScore = this.scoreDeploy(gs, aux.id); //Pontuo a colocação de exércitos em cada território
+                if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
+                    bestScore = newScore;
+                    move[0] = aux.id;
                 }
             }
-            return move;
-	}
-
-	public int[] getFortify(GameState gs){
-            int move[]= new int[2];
-            double bestScore= -100;
-            double newScore;
-            Territory from = null, to= null;
-            for(int i=0; i<this.playerTerritories.size(); i++) { //Corro o vetor de territórios que em pertencem
-                from = this.playerTerritories.get(i);
-                for(int j=0; j<from.neighbours.size(); j++) { //Corro o vetor de territórios adjacente a esse território
-                    to = from.neighbours.get(j);
-                    newScore = this.scoreFortify(gs, from.id, to.id); //Pontuo o ataque do territorio "from"  para "to"
-                    if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
-                        bestScore = newScore;
-                        move[0] = from.id;
-                        move[1] = to.id;
-                    }
+            if (bestScore > -100)
+                return move;
+            else return null;
+    }
+  */  
+    public ArrayList<Integer> getAttack(GameState gs){
+       /* int move[]= new int[2];
+        double bestScore= -100;
+        double newScore;
+        Territory from = null, to= null;
+        for(int i=0; i<this.playerTerritories.size(); i++) { //Corro o vetor de territórios que em pertencem
+            from = this.playerTerritories.get(i);
+            for(int j=0; j<from.neighbours.size(); j++) { //Corro o vetor de territórios adjacente a esse território
+                to = from.neighbours.get(j);
+                newScore = this.scoreAtack(gs, from.id, to.id); //Pontuo o ataque do territorio "from"  para "to"
+                if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
+                    bestScore = newScore;
+                    move[0] = from.id;
+                    move[1] = to.id;
                 }
             }
+        }
+        if ((bestScore > -100) && this.impulsive || (bestScore>0 && !this.impulsive) )
             return move;
-	}
+        else return null; */
+    	
+    	
+    	
+    	ArrayList<Hashtable<Integer, Integer>> compare=new ArrayList<Hashtable<Integer, Integer>>();
+    	
+    	for(int i=0; i<playerTerritories.size();i++)
+    	{
+    		if(playerTerritories.get(i).getArmy()>1)
+    		{
+    			if(this.optimist>0 && this.optimist<0.50)
+            	{
+            		compare.add(SearchBest(playerTerritories.get(i),1));
+            	}
+        		else if(this.optimist>0.50 && this.optimist<0.75)
+        		{
+        			compare.add(SearchBest(playerTerritories.get(i),2));
+        		}
+        		else if(this.optimist>0.75 && this.optimist<1)
+        		{
+        			compare.add(SearchBest(playerTerritories.get(i),3));;
+        		}
+    		}
+    		
+    		
+    	}
+    	
+    	int bestvalue=1000;
+    	int bestindex=0;
+    	int bestterritory=0;
+    	for(int i=0;i<compare.size();i++)
+    	{
+    		
+    		for(int key : compare.get(i).keySet())
+    		{
+    			if(compare.get(i).get(key)<bestvalue)
+    			{
+    				bestvalue=compare.get(i).get(key);
+    				bestterritory=key;
+    				bestindex=i;
+    			}
+    		}
+    			
+    		
+    	}
+    	
+    	ArrayList<Integer> valuetoreturn=new ArrayList<Integer>();
+    	valuetoreturn.add(playerTerritories.get(bestindex).getId());
+    	valuetoreturn.add(bestterritory);
+    	return valuetoreturn;
+    	
+    }
+    
+    public Hashtable<Integer,Integer> SearchBest(Territory rootTerritory,int depth)
+    {
+    	
+    	Hashtable<Integer, Integer> values = new Hashtable<Integer, Integer>();
+    	for(int i=0;i<rootTerritory.getNeighbours().size();i++)
+    	{   
+    		ArrayList<Integer> visited= new ArrayList<>();
+    		Territory neighbour=rootTerritory.getNeighbours().get(i);
+    		values.put(neighbour.getId(),neighbour.getArmy() );
+    		visited.add(neighbour.getId());
+    		for(int j=0;j<neighbour.getNeighbours().size();j++)
+        	{
+    			if (depth==1)
+    				break;
+    			if (visited.contains(neighbour.getNeighbours().get(j).getName()))
+    				continue;
+        		//System.out.println(neighbour.getName()+"----"+ values.get(neighbour.getName()));
+        		values.put(neighbour.getId(),values.get(neighbour.getId())+neighbour.getNeighbours().get(j).getArmy());
+        		visited.add(neighbour.getNeighbours().get(j).getId());
+        		for(int k=0;k<neighbour.getNeighbours().get(j).getNeighbours().size();k++)
+            	{
+        			if (depth==2)
+        				break;
+        			if (visited.contains(neighbour.getNeighbours().get(j).getNeighbours().get(k).getId()))
+        				continue;
+            		values.put(neighbour.getId(),values.get(neighbour.getId())+neighbour.getNeighbours().get(j).getNeighbours().get(k).getArmy());
+            		//System.out.println("2"+neighbour.getName()+"----"+ values.get(neighbour.getName()));
 
-  public void setPersonality()
-  {
-    // Um boolean por default já é false
-    this.optimist = false;
-    this.impulsive = false;
-    this.vingative = false;
-    boolean result[] = new boolean[3];
-    Random gerador = new Random();
+            	}
+        	}
+    	}
+    	
+    	int bestvalue=1000;
+    	int bestterritory=0;
+    	for(Integer key : values.keySet())
+    	{
+    		System.out.println(values.get(key)+key);
+    		if (values.get(key)<bestvalue)
+    		{
+    			bestvalue=values.get(key);
+    			bestterritory=key;
+    		}
+    	}
+    	
+    	Hashtable<Integer, Integer>valuetoreturn=new Hashtable<Integer, Integer>();
+    	valuetoreturn.put(bestterritory, bestvalue);
+    	return valuetoreturn;
+    }
+    
+   /*
+    public int[] getFortify(GameState gs){
+        int move[]= new int[2];
+        double bestScore= -100;
+        double newScore;
+        Territory from = null, to= null;
+        for(int i=0; i<this.playerTerritories.size(); i++) { //Corro o vetor de territórios que em pertencem
+            from = this.playerTerritories.get(i);
+            for(int j=0; j<from.neighbours.size(); j++) { //Corro o vetor de territórios adjacente a esse território
+                to = from.neighbours.get(j);
+                newScore = this.scoreFortify(gs, from.id, to.id); //Pontuo o ataque do territorio "from"  para "to"
+                if(bestScore < newScore) {  // Atualizo a informação da melhor jogada
+                    bestScore = newScore;
+                    move[0] = from.id;
+                    move[1] = to.id;
+                }
+            }
+        }
+        if (bestScore > -100 )
+            return move;
+        else return null;
+    }
+*/
+    public void setPersonality(double optimist, double impulsive,double vingative) {
+        // Um boolean por default já é false
+        this.optimist = optimist;
+        this.impulsive = impulsive;
+        this.vingative = vingative;
+       
+        }
 
-    int personality = gerador.nextInt(8)+1; //1 a 8
+    public int[] throwDice(int number)  {
+        Random gerador = new Random();
+        int dice[] = new int[number];
+        for (int i=0; i< number; i++)
+            dice[i] = (gerador.nextInt(6) +1); //1 a 6
+        return dice;
+    }   
 
-    if( (personality % 2) == 0)
-        this.optimist = true;
-    if( personality<5 )
-        this.impulsive = true;
-    if( (personality > 3) && (personality < 7))
-        this.vingative = true;
-  }
+    public ArrayList<Card> getTrade(){
+        ArrayList<ArrayList<Card>> tradeDeck= new ArrayList<ArrayList<Card>>();
 
-  public int[] throwDice(int number)
-  {
-      Random gerador = new Random();
-      int dice[] = new int[number];
-      for (int i=0; i< number; i++)
-          dice[i] = (gerador.nextInt(6) +1); //1 a 6
-      return dice;
-  }
+        // Verifica as combinações possiveis
+        for (int i=0; i<playerCards.size(); i++){
+                for (int j=0; j<playerCards.size(); j++){
+                        for (int k=0; k<playerCards.size(); k++){
+                                if(i != j && i != k && j != k){
+                                        Card.FIGURE card1 = playerCards.get(i).figure;
+                                        Card.FIGURE card2 = playerCards.get(j).figure;
+                                        Card.FIGURE card3 = playerCards.get(k).figure;
 
-	public ArrayList<Card> getTrade(){
-		ArrayList<ArrayList<Card>> tradeDeck= new ArrayList<ArrayList<Card>>();
+                                        if(card1==card2
+                                        && card1==card3
+                                        && card2==card3 ||
+                                        card1!=card2
+                                        && card1!=card3
+                                        && card2!=card3 ){
+                                                ArrayList<Card> auxDeck= new ArrayList<Card>();
+                                                auxDeck.add(playerCards.get(i));
+                                                auxDeck.add(playerCards.get(j));
+                                                auxDeck.add(playerCards.get(k));
+                                                tradeDeck.add(auxDeck);
+                                        }
+                                }
+                        }
+                }
+        }
 
-		// Verifica as combinações possiveis
-		for (int i=0; i<playerCards.size(); i++){
-			for (int j=0; j<playerCards.size(); j++){
-				for (int k=0; k<playerCards.size(); k++){
-					if(i != j && i != k && j != k){
-						Card.FIGURE card1 = playerCards.get(i).figure;
-						Card.FIGURE card2 = playerCards.get(j).figure;
-						Card.FIGURE card3 = playerCards.get(k).figure;
+        // Dá uma pontuação extra aos decks possiveis baseado nos territórios
+        Hashtable<Integer,Integer> bestDeck = new Hashtable<Integer,Integer>();
 
-						if(card1==card2
-						&& card1==card3
-						&& card2==card3 ||
-						card1!=card2
-						&& card1!=card3
-						&& card2!=card3 ){
-							ArrayList<Card> auxDeck= new ArrayList<Card>();
-							auxDeck.add(playerCards.get(i));
-							auxDeck.add(playerCards.get(j));
-							auxDeck.add(playerCards.get(k));
-							tradeDeck.add(auxDeck);
-						}
-					}
-				}
-			}
-		}
+        for(int i=0; i<tradeDeck.size();i++){
+                ArrayList<Card> auxDeck=tradeDeck.get(i);
+                int valueDeck=0;
+                for(int j=0; j<auxDeck.size(); j++){
+                        if(playerTerritories.contains(auxDeck.get(j).territory))
+                                valueDeck++;
+                }
+                bestDeck.put(i,valueDeck);
+        }
 
-		// Dá uma pontuação extra aos decks possiveis baseado nos territórios
-		Hashtable<Integer,Integer> bestDeck = new Hashtable<Integer,Integer>();
+//Escolhe o melhor deck para fazer trade
+        double max = Double.NEGATIVE_INFINITY;
+        int maxkey=0;
+        Set<Integer> keys = bestDeck.keySet();
+        for (Integer key : keys) {
+                if (bestDeck.get(key) > max) {
+                max = bestDeck.get(key);
+                maxkey=key;
+                }
+        }
 
-		for(int i=0; i<tradeDeck.size();i++){
-			ArrayList<Card> auxDeck=tradeDeck.get(i);
-			int valueDeck=0;
-			for(int j=0; j<auxDeck.size(); j++){
-				if(playerTerritories.contains(auxDeck.get(j).territory))
-					valueDeck++;
-			}
-			bestDeck.put(i,valueDeck);
-		}
-
-	//Escolhe o melhor deck para fazer trade
-		double max = Double.NEGATIVE_INFINITY;
-		int maxkey=0;
-		Set<Integer> keys = bestDeck.keySet();
-		for (Integer key : keys) {
-	 		if (bestDeck.get(key) > max) {
-		 	max = bestDeck.get(key);
-		 	maxkey=key;
-	 		}
-		}
-		
-		for(int i=0;i<playerCards.size();i++){
-			for(int j=0; j<tradeDeck.get(maxkey).size();j++)
-			{
-				if(playerCards.get(i).territory==tradeDeck.get(maxkey).get(j).territory
-				   && playerCards.get(i).figure==tradeDeck.get(maxkey).get(j).figure)
-				{
-					playerCards.remove(i);
-				}	
-			}
-		}
-			
-		return tradeDeck.get(maxkey);
-	}
-
-
-
-	
-
-	
-
-
-
+        return tradeDeck.get(maxkey);
+}
+/*
     public int scoreDeploy(GameState gs, int terr){
         int allyArmy = 0;
         int enemyArmy = 0;
 
         //Contar exércitos
         Territory aux = gs.territories.get(terr);
-        if(aux.owner == this){                              //Estou num território deste player
+        if(aux.owner == this){                            //Estou num território deste player
           for (int i=0; i< aux.neighbours.size(); i++) {  //Corro todos os vizinhos
               if(aux.neighbours.get(i).owner == this)     //Vizinho é o player
                   allyArmy = allyArmy + aux.army;         //Aumento aliados
@@ -223,11 +316,11 @@ public  class Player extends Agent{
         int score = - allyArmy + enemyArmy;
         return score;
     }
-
-public double scoreAtack(GameState gs, int fromTerr, int toTerr) {
+*/
+  /*  public double scoreAtack(GameState gs, int fromTerr, int toTerr) {
     int allyArmy=0;
     int enemyArmy=0;
-    double probVictory;
+    double probVictory=0;
 
     Territory aux = gs.territories.get(toTerr);
 
@@ -249,20 +342,16 @@ public double scoreAtack(GameState gs, int fromTerr, int toTerr) {
     probVictory = gs.getWin(nAtk, 1);
 
     double probRetaliation = 0;
-    if(aux.owner.vingative == true)
+  //  if(aux.owner.vingative == true)
     probRetaliation = 1;
 
-    int territoryRating = aux.territoryRating;
-
-    double score = probVictory*territoryRating - probRetaliation*enemyArmy;
+    double score = probVictory - probRetaliation*enemyArmy;
     return score;
-}
-
-
+    }
+*/
+    /*
     public int scoreFortify(GameState gs, int fromTerr, int toTerr) {
         int enemyArmy = 0;
-
-
         int movesToFrontier = 100; // Se a fronteira ficar a mais de 1 movimento ignoro a jogada
 
         //Contar exércitos
@@ -281,4 +370,163 @@ public double scoreAtack(GameState gs, int fromTerr, int toTerr) {
         int score = displacedArmy + enemyArmy - movesToFrontier;
         return score;
     }
+
+    public int scorePlayer(int id, GameState gs){
+        int alliedArmy = 0;
+        Territory mine;
+        Territory adja;
+        Player evalPlayer = gs.players.get(id);
+        int numTerritories = evalPlayer.playerTerritories.size();   //Quantos exercitos tem player?
+
+        for(int i=0; i< this.playerTerritories.size(); i++) {       //Corro territórios deste player
+            mine = this.playerTerritories.get(i);                   
+              for (int j=0; j< mine.neighbours.size(); j++) {       //Corro todos os vizinhos desse territorio
+                  adja = mine.neighbours.get(j);
+                  if(mine.owner == evalPlayer)                      //Adjacente pertende a player avaliado?
+                      alliedArmy = alliedArmy + adja.army;          //Aumento aliados
+              }
+        }
+
+        int score = alliedArmy + numTerritories;
+        return score;
+    }
+
+    */
+    
+    
+    
+    // classe do comunicacao players
+    class playerBehaviour extends SimpleBehaviour {
+        private int n = 0;
+
+        // construtor do behaviour
+        public playerBehaviour(Agent a) {
+            super(a); 
+        }
+
+        // metodo action
+        @Override
+        public void action() {
+          /*  ACLMessage msg = blockingReceive();
+            if (msg.getPerformative() == ACLMessage.INFORM){ //O player envia jogadas
+                GameState state = null;
+                try {
+                    state = (GameState) msg.getContentObject();
+                } catch (UnreadableException ex) {
+                    Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                DFAgentDescription template = new DFAgentDescription();
+                ServiceDescription sd1 = new ServiceDescription();
+                sd1.setType("Master");
+                template.addServices(sd1);
+                try {
+                    DFAgentDescription[] result = DFService.search(myAgent, template);
+                    // envia mensagem de aliança a todos os agentes
+                    msg = new ACLMessage(ACLMessage.INFORM);
+                    for(int i=0; i<result.length; ++i)
+                        msg.addReceiver(result[i].getName());
+                    
+                    int lam[] = {4167, 5787};
+                   // Message response = new Message(playerId, lam, lam, lam, lam);
+                   // System.err.println(response.atack);
+                    
+                 //   msg.setContentObject( response);
+                  //  send(msg);
+                } catch(FIPAException e) {} catch (IOException ex) {
+                    Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
+                }  } */
+        }
+        
+        @Override
+        public boolean done() { return false;}  }
+
+    // classe de comunicacao master
+    class gameMasterBehaviour extends SimpleBehaviour {
+        private int n=0;
+        
+        // construtor do behaviour
+        public gameMasterBehaviour(Agent a) {
+            super(a); 
+        }
+
+        // metodo action
+        @Override
+        public void action() {
+            ACLMessage msg = blockingReceive();
+            ACLMessage reply = msg.createReply();
+            
+            /*if (msg.getPerformative() == ACLMessage.INFORM){ try {
+                //O player recebe jogadas
+                //Message play = (Message)msg.getContentObject();
+               // System.out.println(++n + " Master recebeu " + play.atack);
+                } catch (UnreadableException | java.lang.ClassCastException ex ) {
+                    Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
+                }
+}
+            
+            if((msg.getPerformative() == ACLMessage.NOT_UNDERSTOOD)) { //O game master envia pedido de jogada
+                DFAgentDescription template = new DFAgentDescription();
+                ServiceDescription sd1 = new ServiceDescription();
+                for(int j=0; j<gs.numPlayers; j++){
+                    sd1.setType("Player " + j);
+                    template.addServices(sd1);
+                    try {
+                        DFAgentDescription[] result = DFService.search(myAgent, template);
+                        // envia pedido de jogada ao agente i
+                        reply = new ACLMessage(ACLMessage.INFORM);
+                        for(int i=0; i<result.length; ++i)
+                            reply.addReceiver(result[i].getName());
+                        reply.setContentObject(gs); 
+                        send(reply);
+                    } catch(FIPAException |IOException e) {} } }*/
+            }
+
+        // metodo done
+        public boolean done() {  return false; } } 
+
+    
+    // metodo setup
+    protected void setup() {
+        // cria behaviour
+        playerBehaviour player = new playerBehaviour(this);
+        gameMasterBehaviour gamemaster = new gameMasterBehaviour(this);
+        
+        // regista agente no DF
+        DFAgentDescription dfd = new DFAgentDescription();
+        
+        dfd.setName(getAID());
+        ServiceDescription sd = new ServiceDescription();
+        sd.setName(getName());
+        if(this.playerType == PLAYERTYPE.MEGABOT) {
+            sd.setType("Master");
+            addBehaviour(gamemaster);}
+        else{
+            sd.setType("Player "+this.playerId);
+            addBehaviour(player);}
+        dfd.addServices(sd);
+        try {
+           DFService.register(this, dfd);
+        } catch(FIPAException e) {
+           e.printStackTrace();
+        }        
+   }   // fim do metodo setup
+
+    // metodo takeDown
+    protected void takeDown() {
+        // retira registo no DF
+        try {
+            DFService.deregister(this);  
+        } catch(FIPAException e) {
+            e.printStackTrace();
+        }
+    }// fim da classe PingPong
+    
+    public void addTerritory(Territory t){
+		playerTerritories.add(t);
+		t.setOwner(this.playerId);
+		t.setOcupied();
+		//t.setColor(this.playerColor);
+	}
+
  }
