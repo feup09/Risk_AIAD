@@ -1,5 +1,6 @@
 package logic;
 
+import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.SimpleBehaviour;
 import jade.domain.DFService;
@@ -11,6 +12,7 @@ import jade.lang.acl.UnreadableException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Hashtable;
 import java.util.Set;
@@ -49,7 +51,10 @@ public class Player extends Agent{
     }
 
     public Player(int id, PLAYERTYPE type, PLAYERCOLOR color , GameState gs){
-            this.gs = gs;
+        super();    
+        String zero=null;//super(id + "", this.ISLOCALNAME)
+            
+        this.gs = gs;
             playerId = id;
             playing = true;
             this.playerType = type;
@@ -318,33 +323,35 @@ public class Player extends Agent{
         public void action() {
             ACLMessage msg = blockingReceive();
             if (msg.getPerformative() == ACLMessage.INFORM){ //O player envia jogadas
-                GameState state = null;
+                
+                
+                /*GameState state = null;
                 try {
                     state = (GameState) msg.getContentObject();
                 } catch (UnreadableException ex) {
                     Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
-                }
+                }*/
+                AID Sender  = msg.getSender();
+                msg = new ACLMessage(ACLMessage.INFORM);
+
                 
-                DFAgentDescription template = new DFAgentDescription();
-                ServiceDescription sd1 = new ServiceDescription();
-                sd1.setType("Master");
-                template.addServices(sd1);
-                try {
-                    DFAgentDescription[] result = DFService.search(myAgent, template);
-                    // envia mensagem de aliança a todos os agentes
-                    msg = new ACLMessage(ACLMessage.INFORM);
-                    for(int i=0; i<result.length; ++i)
-                        msg.addReceiver(result[i].getName());
-                    
-                    int lam[] = {4167, 5787};
-                    Message response = new Message(playerId, lam, lam, lam, lam);
-                    System.err.println(response.atack);
-                    
-                    msg.setContentObject( response);
-                    send(msg);
+                System.err.println(Sender.getName());
+                msg.addReceiver(Sender);
+                msg.setPerformative(ACLMessage.INFORM);
+                send(msg);
+
+                System.out.println(playerId + " got inform");
+
+
+                /*int lam[] = {4167, 5787};
+                message response = new message(playerId, lam, lam, lam, lam,GameState.Phase.TRADE, gs);
+
+                msg.setContentObject( response);
+                send(msg);
                 } catch(FIPAException e) {} catch (IOException ex) {
                     Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
-                }  }
+                }  */
+            }
         }
         
         @Override
@@ -365,30 +372,29 @@ public class Player extends Agent{
             ACLMessage msg = blockingReceive();
             ACLMessage reply = msg.createReply();
             
-            if (msg.getPerformative() == ACLMessage.INFORM){ try {
+            if (msg.getPerformative() == ACLMessage.INFORM){/* try {
                 //O player recebe jogadas
-                Message play = (Message)msg.getContentObject();
-                System.out.println(++n + " Master recebeu " + play.atack);
+                message play = (message)msg.getContentObject();
+                System.out.println(++n + " Master recebeu " + Arrays.toString(play.atack));
                 } catch (UnreadableException | java.lang.ClassCastException ex ) {
                     Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
-                }
-}
+                }*/
+                System.err.println("lean on");
+            }
             
             if((msg.getPerformative() == ACLMessage.NOT_UNDERSTOOD)) { //O game master envia pedido de jogada
                 DFAgentDescription template = new DFAgentDescription();
                 ServiceDescription sd1 = new ServiceDescription();
-                for(int j=0; j<gs.numPlayers; j++){
-                    sd1.setType("Player " + j);
-                    template.addServices(sd1);
-                    try {
-                        DFAgentDescription[] result = DFService.search(myAgent, template);
-                        // envia pedido de jogada ao agente i
-                        reply = new ACLMessage(ACLMessage.INFORM);
-                        for(int i=0; i<result.length; ++i)
-                            reply.addReceiver(result[i].getName());
-                        reply.setContentObject(gs); 
-                        send(reply);
-                    } catch(FIPAException |IOException e) {} } }
+                sd1.setType("Player ");
+                template.addServices(sd1);
+                try {
+                    DFAgentDescription[] result = DFService.search(myAgent, template);
+                    reply = new ACLMessage(ACLMessage.INFORM);
+                    for(int i=0; i<result.length; ++i)
+                        reply.addReceiver(result[i].getName());
+                    reply.setContentObject(gs); 
+                    send(reply);
+                } catch(FIPAException |IOException e) {} } 
             }
 
         // metodo done
@@ -404,16 +410,19 @@ public class Player extends Agent{
         // regista agente no DF
         DFAgentDescription dfd = new DFAgentDescription();
         
+        AID id = new AID(playerId+"", AID.ISLOCALNAME );
         dfd.setName(getAID());
+        System.out.println("Info: "+getAID().getName());
         ServiceDescription sd = new ServiceDescription();
         sd.setName(getName());
         if(this.playerType == PLAYERTYPE.MEGABOT) {
             sd.setType("Master");
             addBehaviour(gamemaster);}
         else{
-            sd.setType("Player "+this.playerId);
+            sd.setType("Player ");
             addBehaviour(player);}
         dfd.addServices(sd);
+        
         try {
            DFService.register(this, dfd);
         } catch(FIPAException e) {

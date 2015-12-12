@@ -13,6 +13,7 @@ import jade.wrapper.StaleProxyException;
 
 public class GameState implements java.io.Serializable{
 
+        public enum Phase {START,FIRSTDEPLOY,DEPLOY,REINFORCE,REINFORCE2,TRADE,ATTACK,ATTACK2,ATTACK3};
 	public int maxPlayers;
 	public int numPlayers;
 
