@@ -1,268 +1,206 @@
 package logic;
+import agent.*;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Random;
-import jade.BootProfileImpl;
-import jade.core.Profile;
-import jade.core.Runtime;
-import jade.util.leap.HashMap;
-import jade.wrapper.AgentController;
-import jade.wrapper.ContainerController;
-import jade.wrapper.StaleProxyException;
 
 public class GameState implements java.io.Serializable{
-
-	public int maxPlayers;
-	public int numPlayers;
-
-	public ArrayList<Player> players= new ArrayList<Player>();
-	public ArrayList<Territory> territories = new ArrayList<Territory>();
-
-	public ArrayList<Card> cardDeck = new ArrayList<Card>();
-
-    /*public void rondaInicial() {
-        int occupiedTerritories =0;
-        int dado[] = new int[numPlayers]; //Guarda lancar de dados para definir primeiro a jogador
-        int bestThrow=0;
-        int bestPlayer=0;
+	
+	private static final long serialVersionUID = 1L;
+	private int playerTurn;
+	private int nPlayers;
+	
+	public enum Phase {START,FIRSTDEPLOY,DEPLOY,REINFORCE,REINFORCE2,TRADE,ATTACK,ATTACK2,ATTACK3};
+	private Phase phase;
+	
+	private boolean adding = true;
+	
+	private int attackingTroops;
+	private int attackingTerritory;
+	private int defendingTerritory;
+	
+	public Utils utils = new Utils();
+	public ArrayList<Integer> attackerDices = utils.throwDices(10, true);
+	public ArrayList<Integer> defenderDices = utils.throwDices(3, false);
+	public ArrayList<Integer> attackResult = new ArrayList<Integer>();
+	
+	private ArrayList<Player> players;
+	private ArrayList<Territory> territories;
+	private ArrayList<Card> cardDeck;
+	private ArrayList<Card> usedDeck;
         
-        for(int i=0; i<numPlayers; i++) {
-            dado[i] = players.get(i).throwDice(1)[0];
-            if(bestThrow < dado[i]) {
-                bestPlayer = i;
-                bestThrow = dado[i];
-            }
-        }
-        
-        int j=bestPlayer;
-        while(occupiedTerritories < 42) { //Ocupamos todos territorios 
-            players.get(j).getOcuppy(this);
-            j++;
-            if(j==(numPlayers -1)) j=0;
-        }
-    }*/
-	
-	public enum HORSETERRITORY{
-		//NORTH AMERICA
-    ALASKA,
-    ALBERTA,
-    CENTRAL_AMERICA,
-    EASTERN_UNITED_STATES,
-    GREENLAND,
-    NORTHWEST_TERRITORY,
-    ONTARIO,
-    QUEBEC,
-    WESTERN_UNITED_STATES,
-		//SOUTH AMERICA
-	ARGENTINA,
-    BRAZIL,
-    PERU,
-    VENEZUELA
-	}
-	
-	public enum SOLDIERTERRITORY{
-		//NORTH AMERICA
-
-		//EUROPE
-    GREAT_BRITAIN,
-    ICELAND,
-    NORTHERN_EUROPE,
-    SCANDINAVIA,
-    SOUTHERN_EUROPE,
-    UKRAINE,
-    WESTERN_EUROPE,
-		//AFRICA
-		CONGO,
-    EAST_AFRICA,
-    EGYPT,
-    MADAGASCAR,
-    NORTH_AFRICA,
-    SOUTH_AFRICA
-	}
-	
-	public enum CANNONTERRITORY{
-
-		//ASIA
-	AFGHANISTAN,
-    CHINA,
-    INDIA,
-    IRKUTSK,
-    JAPAN,
-    KAMCHATKA,
-    MIDDLE_EAST,
-    MONGOLIA,
-    SIAM,
-    SIBERIA,
-    URAL,
-    YAKUTSK,
-		//AUSTRALIA
-		EASTERN_AUSTRALIA,
-    INDONESIA,
-    NEW_GUINEA,
-    WESTERN_AUSTRALIA
-	}
-	
-	
-
         ////http://www.datagenetics.com/blog/november22011/
-        double[][] win = {{0.4167, 0.5787, 0.6597}, {0.2546, 0.2276, 0.3717}};
-	double[][] tie = {{0, 0, 0}, {0, 0.3241, 0.3358}};
-
-	public GameState (int numPlayers) throws StaleProxyException, InterruptedException{
-            this.numPlayers=numPlayers;
-            Runtime runtime = Runtime.instance();
-            String[] arguments = new String[1];
-            arguments[0] = "-gui";
-            Profile profile = new BootProfileImpl(arguments);
-            ContainerController mainContainer = runtime.createMainContainer(profile);
-
-            //Game Master
-            Player master= new Player(0,Player.PLAYERTYPE.MEGABOT,Player.PLAYERCOLOR.BLUE,0.2,1,1,this);
-            master.gs=this;
-            AgentController agc = mainContainer.acceptNewAgent("Master", master);
-            agc.start();
-            players.add(master);
-
-            Thread.sleep(1000);
-
-            //Player 1
-            Player nolasco= new Player(1, Player.PLAYERTYPE.BOT, Player.PLAYERCOLOR.BLACK,0.2,1,1, this);
-            AgentController agc1 = mainContainer.acceptNewAgent("nolasco", nolasco);
-            agc1.start();
-            players.add(nolasco);
-            
-            Thread.sleep(1000);
-
-            //Player 2
-            Player bruno= new Player(2,Player.PLAYERTYPE.BOT, Player.PLAYERCOLOR.BLUE,0.8,1,1, this);
-            AgentController agc2 = mainContainer.acceptNewAgent("bruno", bruno);
-            agc2.start();
-            players.add(bruno);
-            
-            Thread.sleep(1000);
-
-            //Player 3
-            Player ricardo= new Player(3, Player.PLAYERTYPE.BOT, Player.PLAYERCOLOR.GREEN,0.2,1,1, this);
-            AgentController agc3 = mainContainer.acceptNewAgent("ricardo", ricardo);
-            agc3.start();
-            players.add(ricardo);
-            
-            generateTerritories();
-            generateNeighbours();
-            bruno.addTerritory(this.territories.get(2));
-            bruno.addTerritory(this.territories.get(6));
-            System.out.println("The best"+bruno.getAttack(this).get(0)+ "to " + bruno.getAttack(this).get(1) );
-            
-            int numArmies=0;
-            switch(this.numPlayers){
-                    case 2:numArmies=40;
-                    break;
-                    case 3:numArmies=35;
-                    break;
-                    case 4:numArmies=30;
-                    break;
-                    case 5:numArmies=25;
-                    break;
-                    case 6:numArmies=20;
-                    break;
-                    default:System.out.println("Invalid number of players");
-            }
-            for(int i=0;i<this.numPlayers;i++){
-                players.get(i).armies = numArmies;
-            }
-
-            //newDeck();
-            //rondaInicial();
-	}
+        private double[][] win = {{0.4167, 0.5787, 0.6597}, {0.2546, 0.2276, 0.3717}};
+	private double[][] tie = {{0, 0, 0}, {0, 0.3241, 0.3358}};
 	
-	public void newDeck(){
-		Card tempCard;
-		long seed = System.nanoTime();
-		for (HORSETERRITORY horseterritory : HORSETERRITORY.values()) {
-			tempCard= new Card(Card.FIGURE.HORSE,Card.TERRITORY.valueOf(horseterritory.toString()));
-			this.cardDeck.add(tempCard);
-		}
-		for (SOLDIERTERRITORY soldierterritory : SOLDIERTERRITORY.values()) {
-			tempCard= new Card(Card.FIGURE.SOLDIER,Card.TERRITORY.valueOf(soldierterritory.toString()));
-			this.cardDeck.add(tempCard);
-		}
-		for (CANNONTERRITORY cannonterritory : CANNONTERRITORY.values()) {
-			tempCard= new Card(Card.FIGURE.CANNON,Card.TERRITORY.valueOf(cannonterritory.toString()));
-			this.cardDeck.add(tempCard);
-		}
-		
-		for(int i=0; i<2; i++){
-			tempCard= new Card(Card.FIGURE.ALL,Card.TERRITORY.JOKER);
-			this.cardDeck.add(tempCard);
-		}
-		
-		
+	public GameState(){
+		//initialize parameters
 
-		Collections.shuffle(this.cardDeck, new Random(seed));
+		territories = new ArrayList<Territory>();
 		
+		attackingTroops = 0;
+		attackingTerritory = 0;
+		defendingTerritory = 0;
+		playerTurn = 0;
+		
+		this.attackResult.add(1);
+		this.attackResult.add(2);
+		players = new ArrayList<Player>();
+		cardDeck = new ArrayList<Card>();
+		usedDeck = new ArrayList<Card>();
+		phase = Phase.START;
+		
+		//generate Territories
+		generateTerritories();
+		generateNeighbours();
+		generatePlayers();
+		generateDeck();
+		shuffleDeck();
 		
 	}
 	
-	public void giveCards(Player player){
-            player.playerCards.add(cardDeck.get(0));
-            cardDeck.remove(0);
-	}
 	
-	public void doTrade(Player player, ArrayList<Card> cards){
-		switch(player.numTrades){
-			case 0:
-				player.armies+=4;
-				player.numTrades++;
-				break;
-			case 1:
-				player.armies+=6;
-				player.numTrades++;
-				break;
-			case 2:
-				player.armies+=8;
-				player.numTrades++;
-				break;
-			case 3:
-				player.armies+=10;
-				player.numTrades++;
-				break;
-			case 4:
-				player.armies+=12;
-				player.numTrades++;
-				break;
-			case 5:
-				player.armies+=15;
-				player.numTrades++;
-				break;
-			default:
-				player.armies+=((player.numTrades-2)*5);
-				player.numTrades++;
-				break;
+	
+	public void generateDeck(){
+		
+		int[] canon = {0,2,3,4,6,7,23,24,41,28,29,30,33,37};
+		int[] horse = {1,5,21,25,13,9,11,16,39,40,32,31,34,35};
+		int[] soldier = {8,20,22,14,17,15,19,18,10,12,38,26,27,36};
+		
+		for(int i = 0; i < canon.length; ++i){
+			this.cardDeck.add(new Card(Card.CardFigure.CANNON,canon[i]));
 		}
 		
-		for(int i=0; i<cards.size();i++){
-				if(player.playerTerritories.contains(cards.get(i).territory))
-				{
-					player.armies+=2;
-					break;
-				}
+		for(int i = 0; i < horse.length; ++i){
+			this.cardDeck.add(new Card(Card.CardFigure.HORSE,horse[i]));
+		}
+		
+		for(int i = 0; i < soldier.length; ++i){
+			this.cardDeck.add(new Card(Card.CardFigure.SOLDIER,soldier[i]));
+		}
+		
+	}
+	
+	public void shuffleDeck(){
+		Collections.shuffle(this.cardDeck);
+	}
+	
+	public void playCard(Card c){
+		this.usedDeck.add(0,c);
+	}
+	
+	public ArrayList<Territory> getTerritories(){
+		
+		return territories;
+	}
+	
+	public ArrayList<Player> getPlayers(){
+		
+		return this.players;
+	}
+	
+	public Phase getPhase(){
+		return this.phase;
+	}
+	
+	
+	public void setPhase(Phase phase){
+		this.phase = phase;
+	}
+	
+	public void resetClickTarget(){
+		for(int i = 0; i < this.territories.size();++i){
+			this.territories.get(i).resetClickTarger();
+		}
+	}
+	
+	
+	
+	
+	public void generatePlayers(){
+		
+		Config cfg = new Config();
+		int num = cfg.getNPlayers();
+		ArrayList<String> p = cfg.getP();
+		ArrayList<Integer> c = cfg.getC();
+		ArrayList<Integer> t = cfg.getT();
+                ArrayList<Double> o = cfg.getO();
+		ArrayList<Double> im = cfg.getI();
+                ArrayList<Double> v = cfg.getV();
+                
+		
+		
+		for(int i = 0; i < num; ++i){
+			if(t.get(i)==1){//player
+				
+				this.players.add(new Human(i,p.get(i),t.get(i),c.get(i),1,1,1));
 			}
+			else{
+				this.players.add(new IntermediateBot(i,p.get(i),t.get(i),c.get(i),o.get(i),im.get(i),v.get(i)));
+			}
+		}
 		
-		cardDeck.add(cards.get(0));
-		cardDeck.add(cards.get(1));
-		cardDeck.add(cards.get(2));
+		this.nPlayers = num;
 		
+	}
+	
+	public void deliverArmies(){
+		int total = 0;
+		if(this.nPlayers == 2){
+			total = 45;
+		}
+		else if(this.nPlayers == 3){
+			total = 35;
+		}
+		else if(this.nPlayers == 4){
+			total = 30;
+		}
+		else if(this.nPlayers == 5){
+			total = 25;
+		}
+		else if(this.nPlayers == 6){
+			total = 20;
+		}
 		
+		//must place in territories 1 army
+		//remove 1 for each territory
+		//give diference to player
+		for(int i = 0; i < players.size(); ++i){
+			players.get(i).addArmy(total-players.get(i).getTerritories().size());
+		}
+		
+		//add 1 army per territory
+		for(int i = 0; i <territories.size();++i){
+			territories.get(i).addArmy(5);
+		}
+		
+	}
+	
+	
+	public void deliverTerritories(){
+		int tempPlayer = 0;
+		for(int i = 0; i < this.cardDeck.size();++i){
+			int t = this.cardDeck.get(i).getTerritory();
 			
+			this.players.get(tempPlayer).addTerritory(territories.get(t));
+			
+			if(tempPlayer== (this.nPlayers-1)){
+				tempPlayer = 0;
+			}
+			else{
+				++tempPlayer;
+			}
+			
+		}
+	}
+	
+	public int getPlayerTurn(){
+		return this.playerTurn;
 	}
 
-	public double getWin(int atk, int def) {
-		return win[atk+1][def+1];
-	}
-
-	public double getTie(int atk, int def) {
-		return tie[atk+1][def+1];
+	public int getNPlayers(){
+		return this.nPlayers;
 	}
 	
 public void generateTerritories(){
@@ -789,7 +727,161 @@ public void generateTerritories(){
 		
 	}
 	
+	public boolean isAdding(){
+		return this.adding;
+	}
 	
+	public void setIncrementing(){
+		this.adding = true;
+	}
+	
+	public void setDecrementing(){
+		this.adding = false;
+	}
+	
+	public void nextPhase(){
+		if(this.phase == Phase.START){
+			this.playerTurn = 0;
+			this.phase = Phase.FIRSTDEPLOY;
+		}
+		else if(this.phase == Phase.FIRSTDEPLOY){
+			changeTurn();
+			System.out.println("T");
+		}
+		else if(this.phase == Phase.TRADE){
+			this.phase = Phase.DEPLOY;
+			System.out.println("D");
+		}
+		else if(this.phase == Phase.DEPLOY){
+			this.phase = Phase.ATTACK;
+			System.out.println("A");
+		}
+		else if(this.phase == Phase.ATTACK || this.phase == Phase.ATTACK2){
+
+			players.get(playerTurn).resetArmies();
+			this.phase = Phase.REINFORCE;
+			System.out.println("R");
+		}
+		else if(this.phase == Phase.REINFORCE){
+			changeTurn();
+			players.get(playerTurn).resetArmies();
+			this.phase = Phase.TRADE;
+		}
+	}
+	
+	public void changeTurn(){
+		
+		boolean loop = true;
+		
+		while(loop){
+			++this.playerTurn;
+			if(this.playerTurn >= this.nPlayers){
+				this.playerTurn = 0;
+				if(this.phase == Phase.FIRSTDEPLOY && this.players.get(playerTurn).getArmy() == 0){
+					this.phase = Phase.TRADE;
+				}
+			}
+			
+			if(this.players.get(this.playerTurn).isPlaying()){
+				loop = false;
+			}
+		}
+	}
+	
+	public boolean anyHumanPlaying(){
+		boolean humansOn = false;
+		
+		for(int i = 0; i < players.size();++i){
+			if(players.get(i).isHuman()){
+				humansOn = true;
+				break;
+			}
+		}
+		
+		return humansOn;
+	}
+
+	public void incrementAttack(){
+		if(this.attackingTroops < this.territories.get(attackingTerritory).getArmy()){
+			++this.attackingTroops;
+		}
+	}
+	
+	
+	public void decrementAttack(){
+		if(this.attackingTroops > 0){
+			--this.attackingTroops;
+		}
+	}
+	
+	public int getAttackingTroops(){
+		return this.attackingTroops;
+	}
+	
+	public int getAttackingTerritory(){
+		return this.attackingTerritory;
+	}
+	
+	public int getDefendingTerritory(){
+		return this.defendingTerritory;
+	}
+	
+	
+	public void setAttackingTroops(int n){
+		this.attackingTroops = n;
+	}
+	
+	
+	public void setAttackingTerritory(int n){
+		this.attackingTerritory = n;
+	}
+	
+	public void setDefendingTerritory(int n){
+		this.defendingTerritory = n;
+	}
+	
+	public void doAttack(int attackingTerritory, int defendingTerritory, int troops){
+		
+		int attackerId = territories.get(attackingTerritory).getOwner();
+		int defenderId = territories.get(defendingTerritory).getOwner();
+		
+		//geras dados attack
+		this.attackerDices = this.utils.throwDices(troops, true);
+		//geras dadod defesa
+		this.defenderDices = this.utils.throwDices(territories.get(defendingTerritory).getArmy(), true);
+		
+		//ves resultados
+		
+		ArrayList<Integer> results = utils.combateLosses(attackerDices, defenderDices);
+		
+		
+		//mudas mapa
+		
+		
+		territories.get(attackingTerritory).removeArmy(results.get(0));
+		territories.get(defendingTerritory).removeArmy(results.get(1));
+		
+		if(territories.get(defendingTerritory).getArmy()==0){
+			//mudar tropas 
+			//mudar array territorios
+			//mudar owner
+			territories.get(defendingTerritory).setOwner(attackerId);
+			players.get(attackerId).addTerritory(territories.get(defendingTerritory));
+			players.get(defenderId).removeTerritory(defendingTerritory);
+			
+			
+			
+			territories.get(attackingTerritory).removeArmy(troops - results.get(0));
+			territories.get(defendingTerritory).addArmy(troops-results.get(0));	
+		}
+		
+	}
+        
+        public double getWin(int atk, int def) {
+		return win[def][atk];
+	}
+
+	public double getTie(int atk, int def) {
+		return tie[def][atk];
+	}
 }
-
-

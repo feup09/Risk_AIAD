@@ -3,7 +3,7 @@ package logic;
 import java.awt.Polygon;
 import java.util.ArrayList;
 
-public class Territory extends Polygon{
+public class Territory extends Polygon implements java.io.Serializable{
 	private int id;
 	private int owner;
 	private boolean ocupied;
@@ -26,12 +26,6 @@ public class Territory extends Polygon{
 	
 	
 	private ArrayList<Territory> neighbours;
-	
-	public Territory(int id, String name)
-	{
-		this.id=id;
-		this.name=name;
-	}
 	
 	public Territory(int id,Continent continent,TColor color, String name,int xName, int yName, int xTroops, int yTroops,
 			int[] xCoords,int[] yCoords, int points ){
